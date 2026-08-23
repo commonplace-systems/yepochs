@@ -276,6 +276,13 @@ guard"* and confirms *"silent loss of XML children is never acceptable."*
 ⇒ **Neither is actionable from this repo.** Generating cross-language vectors *was*, and is done:
 Node and upstream `yjs` are available here, which I initially and wrongly assumed they were not.
 
+⚠️ **Vantage point, named:** "available" here means **measured from inside this session's own tool
+calls, in this working directory** — `node` v24.13.1 on `PATH`, and `conformance/node_modules`
+holding `yjs@13.6.32`, exercised by `conformance/map_array_corpus.mjs`, whose output is committed
+under `test/fixtures/yjs-v1/006`–`010`. ⭐ **The retracted claim was the flat one — "no Node here" —
+and it was false, not merely narrow.** A claim about what is available is a claim about a vantage
+point; this one's is the same vantage the fixtures were generated from.
+
 ## What I explicitly did *not* do
 
 ⛔ Invent answers to 1, 2 or 3 while they were open. Each had a current behaviour that worked, was
