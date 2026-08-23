@@ -115,6 +115,33 @@ independent probe at Tier 1 rather than inheriting this result.
 
 ## Naming: `Yepochs`, not `YEpochs`
 
-The spec uses both. `YEpochs` appears 10 times, **all in prose and tables**; every struct
-definition (§8.1–8.4, §10.1, §15.1) and the entire §24 "Initial public API" block uses `Yepochs`.
-⇒ `Yepochs` is normative; `YEpochs` is a typo. Module namespace is `Yepochs.*`, app is `:yepochs`.
+The spec uses both spellings. ⚠️ **An earlier version of this document claimed all ten `YEpochs`
+occurrences were prose or tables. That was wrong** — it was extrapolated from the table cluster
+without reading the other four. Corrected breakdown, by reading each one:
+
+| Line | Occurrence | Kind |
+|---|---|---|
+| 305 | `spans: [YEpochs.Span.t()]` | **normative** — a type spec |
+| 402 | ```YEpochs.Derivation.validate/1` MUST enforce`` | **normative** — a MUST |
+| 412 | ```YEpochs.Derivation.normalize/1` MUST`` | **normative** — a MUST |
+| 881 | ``a behavior defined by `YEpochs.Rebase.Adapter``` | **normative** — a MUST clause |
+| 1101–1106 | the §26 migration table (6 occurrences) | table |
+
+⇒ **Four of the ten are normative, not zero.** This is a genuine ambiguity, not an obvious typo
+cluster that can be waved through — and it is with jes on those terms.
+
+**The decision taken here, and why it is still `Yepochs`:**
+
+1. **Count.** `Yepochs` outnumbers `YEpochs` roughly 40 to 10.
+2. **Every struct definition and the whole §24 "Initial public API" block uses `Yepochs`** — the
+   places that would actually be copied into code.
+3. ⭐ **Line 305 is self-contradictory inside one code block.** It sits in the `defmodule
+   Yepochs.Derivation` definition and gives a field the type `YEpochs.Span.t()`, while §8.1 defines
+   `defmodule Yepochs.Span`. `YEpochs.Span` is a module the spec never defines anywhere.
+
+⇒ Module namespace is `Yepochs.*`; app is `:yepochs`. Cheap to reverse now, expensive later.
+
+> ⭐ **Method note, kept because it generalises:** a claim about *where* something appears needs the
+> same instrument discipline as a claim about *whether* it appears. A count said ten; only reading
+> the ten said what they were. Point 3 above is the strongest evidence for the decision and it is
+> visible only by reading.
