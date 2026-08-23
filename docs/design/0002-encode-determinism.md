@@ -113,3 +113,62 @@ updates, so Result 2's divergence regime is out of reach by construction.
 ⚠️ **Scope of this claim, stated so it is not over-read:** one small update, 4 items, 2 clients.
 The mechanism in the docstring supports the general case, but **Tier 1 must property-test order
 insensitivity over generated item lists** rather than resting on this.
+
+---
+
+## ⛔ Correction — the first sweep authored FULL-STATE updates, not deltas
+
+`Encoding.encode_update/1` emits the doc's **entire state**, not a delta. The first sweep's
+"updates" were therefore **27 bytes each and carried their own base**, so every update satisfied its
+own causal dependencies on arrival and **a second mechanism was unreachable by construction.**
+Caught by `commonplace-merkle-crdt`. The correct call is `Encoding.encode_diff(doc, state_vector)`
+— **6 bytes** for the same edit.
+
+⭐ This is the same blindness as the `client_pending` diagnostic error above, from the other side:
+the pending buffer is where yelixer holds what it cannot causally integrate yet, and an instrument
+that never produces a genuinely-pending update can never see that path.
+
+## Re-run with TRUE deltas — two distinct mechanisms, both now measured
+
+All 676 pairs re-authored with `encode_diff/2`, varying **arrival order relative to the causal
+dependency** as well as the order of the two deletes:
+
+| class | n | **P1** base first, swap deletes | **P2** base LAST, swap deletes | **P3** base-first vs base-last |
+|---|---:|---:|---:|---:|
+| identical | 26 | 0 differ | 0 differ | 0 differ |
+| disjoint | 232 | 0 differ | 0 differ | **0 differ** |
+| adjacent | 128 | 0 differ | 0 differ | **128 differ** |
+| contained | 178 | **178 differ** | 0 differ | 89 differ |
+| overlapping | 112 | **112 differ** | 0 differ | **112 differ** |
+
+Convergence held at **676/676** in every protocol.
+
+**M1 — concurrent-delete order, dependencies already satisfied (P1).** Reproduces *exactly* as in
+the full-state sweep. ⇒ **The M1 result was not an authoring artifact**; "diverge iff the ranges
+intersect and are not identical" stands, now measured on true deltas.
+
+**M2 — arrival order relative to causal dependency (P3).** A different and broader mechanism: it
+hits **all 128 adjacent** and **all 112 overlapping** pairs, plus half of contained — geometry that
+*commutes* under M1 still diverges here. ⛔ **It does not hit disjoint or identical**, which
+contradicts the prediction that M2 would reach every class.
+
+**And a third observation neither of us predicted (P2):** with the base arriving **last**, the two
+deltas' relative order stops mattering entirely — **0 divergence in every class.** Both deltas wait
+in the pending buffer and are integrated in a canonical order once their dependency lands. ⇒ The
+pending path is *more* deterministic than the direct path, not less.
+
+## Consequence for `yepochs` — the caller contract is broader than result 5 stated
+
+⭐ **Tier 1 translation remains immune by construction.** It decodes an update binary and re-encodes
+with `encode_items/2`; it never applies updates to build a `Doc`, so neither M1 nor M2 is reachable.
+
+⚠️ **But the §10 / §19 caller contract must cover arrival order, not just apply order.** Two callers
+holding the same observable document differ in `Doc` term if their updates arrived in a different
+order **relative to causal dependency** — even when the edits commute. §18 assigns path discovery to
+the caller, so a caller can legitimately hand over histories assembled in different arrival orders.
+
+⇒ **Recommended spec clause, for jes:** state explicitly that byte-determinism of snapshot output is
+conditional on the caller's `Doc` having a fixed struct representation, and that supplying a
+`Doc` assembled in a different arrival order is a *different input*, not a violated guarantee. §10.4
+implies this via "supported struct representation"; **it is not stated as a precondition anywhere,
+and §15.8 says nothing about it at all.**
