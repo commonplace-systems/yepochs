@@ -46,7 +46,7 @@ defmodule Yepochs.TotalityTest do
   # below is the gate that keeps the two lists from drifting apart.
   @shape_names ~w(text-clean text-tombstoned map-clean map-tombstoned array-clean
                   array-tombstoned xmltext xmlelement-attrs xmlelement-child
-                  xmlfragment-child multi-type empty)
+                  xmlfragment-child multi-type single-author-degenerate empty)
   @edit_names ~w(text-insert text-delete map-set map-delete array-insert
                  array-delete xmltext-ins xml-attr-set xml-add-kid new-type)
 
@@ -58,6 +58,28 @@ defmodule Yepochs.TotalityTest do
     m
   end
 
+  # ⛔ EVERY SHAPE MUST BE MULTI-AUTHOR, and this is not a nicety.
+  #
+  # The deterministic minter re-authors a snapshot under the SMALLEST client id
+  # present in the source. A single-author document has exactly one, so the
+  # derived document reuses it and every correspondence span comes out as an
+  # IDENTITY mapping — left {100,0} == right {100,0}.
+  #
+  # ⇒ Measured: with identity spans, a translator that ignored the bridge
+  # entirely and passed raw coordinates through unchanged passes every cell.
+  # That is precisely what invariant 9 forbids, and a matrix built that way
+  # cannot detect a violation of it. Mutation testing caught it: mislabelling
+  # the crossing direction changed nothing, because with identity spans there is
+  # nothing for a direction to be wrong about.
+  #
+  # A second, HIGHER-numbered author guarantees content that must be remapped.
+  defp two_author(%Doc{} = first, second_fn) do
+    base = materialized(first)
+    second = second_fn.(replica(base, 200))
+    {:ok, merged} = Encoding.apply_update(base, Encoding.encode_update(second))
+    materialized(merged)
+  end
+
   defp replica(%Doc{} = base, client) do
     d = Doc.new(client_id: client)
     {:ok, d} = Encoding.apply_update(d, Encoding.encode_update(base))
@@ -67,61 +89,146 @@ defmodule Yepochs.TotalityTest do
   defp delta(%Doc{} = doc, %Doc{} = since),
     do: Encoding.encode_diff(doc, BlockStore.state_vector(since.store))
 
-  # Observable content, identity-free: every live item's parent, parent_sub and
-  # content. Two docs holding the same observable value have equal lists even
-  # though their item identities differ — which is what a crossing must achieve.
+  # Observable content: identity-free AND segmentation-free.
+  #
+  # ⛔ An earlier version listed each live ITEM's content, and that is a
+  # representation comparison wearing a value comparison's clothes. The snapshot
+  # replay CONSOLIDATES adjacent runs: a source holding "hello" and "!!" as two
+  # items becomes one item "hello!!". Measured — it reported 61 correct
+  # crossings as wrong, and every one of them was the same consolidation.
+  #
+  # ⇒ Sequences are flattened to their ordered atomic values via
+  # `get_sequence/2` (document order), so item boundaries cannot be seen.
+  # Keyed (`parent_sub`) content is compared per key.
   defp observable(%Doc{} = d) do
-    d.store
-    |> BlockStore.all_items()
-    |> Enum.reject(& &1.deleted)
-    |> Enum.map(&{inspect(&1.parent), &1.parent_sub, inspect(&1.content)})
-    |> Enum.sort()
+    names =
+      d.store
+      |> BlockStore.all_items()
+      |> Enum.flat_map(fn
+        %{parent: {:named, name}} -> [name]
+        _ -> []
+      end)
+      |> Enum.uniq()
+      |> Enum.sort()
+
+    for name <- names do
+      sequence =
+        d.store
+        |> BlockStore.get_sequence(name)
+        |> Enum.reject(& &1.deleted)
+        |> Enum.filter(&is_nil(&1.parent_sub))
+        |> Enum.flat_map(&atoms/1)
+
+      keyed =
+        d.store
+        |> BlockStore.all_items()
+        |> Enum.reject(& &1.deleted)
+        |> Enum.filter(&(match?({:named, ^name}, &1.parent) and not is_nil(&1.parent_sub)))
+        |> Enum.map(&{&1.parent_sub, inspect(&1.content)})
+        |> Enum.sort()
+
+      {name, sequence, keyed}
+    end
   end
+
+  # One item's content as an ordered list of atomic values, so that two docs
+  # segmenting the same value differently still compare equal.
+  defp atoms(%{content: {:string, str}}), do: String.graphemes(str)
+  defp atoms(%{content: {:any, values}}) when is_list(values), do: Enum.map(values, &inspect/1)
+  defp atoms(%{content: other}), do: [inspect(other)]
 
   defp shapes do
     [
-      {"text-clean", fn -> Doc.new(client_id: 100) |> Text.insert("t", 0, "hello") end},
+      {"text-clean",
+       fn ->
+         two_author(
+           Text.insert(Doc.new(client_id: 100), "t", 0, "hello"),
+           &Text.insert(&1, "t", 5, "!!")
+         )
+       end},
       {"text-tombstoned",
        fn ->
-         Doc.new(client_id: 100) |> Text.insert("t", 0, "hello world") |> Text.delete("t", 5, 6)
+         two_author(
+           Text.insert(Doc.new(client_id: 100), "t", 0, "hello world"),
+           &(&1 |> Text.insert("t", 11, "!!") |> Text.delete("t", 5, 6))
+         )
        end},
       {"map-clean",
-       fn -> Doc.new(client_id: 100) |> YMap.set("m", "a", "1") |> YMap.set("m", "b", "2") end},
+       fn ->
+         two_author(
+           YMap.set(Doc.new(client_id: 100), "m", "a", "1"),
+           &YMap.set(&1, "m", "b", "2")
+         )
+       end},
       {"map-tombstoned",
-       fn -> Doc.new(client_id: 100) |> YMap.set("m", "a", "1") |> YMap.set("m", "a", "2") end},
-      {"array-clean", fn -> Doc.new(client_id: 100) |> Array.insert("a", 0, ["x", "y"]) end},
+       fn ->
+         two_author(
+           YMap.set(Doc.new(client_id: 100), "m", "a", "1"),
+           &YMap.set(&1, "m", "a", "2")
+         )
+       end},
+      {"array-clean",
+       fn ->
+         two_author(
+           Array.insert(Doc.new(client_id: 100), "a", 0, ["x"]),
+           &Array.push(&1, "a", ["y"])
+         )
+       end},
       {"array-tombstoned",
        fn ->
-         Doc.new(client_id: 100)
-         |> Array.insert("a", 0, ["x", "y", "z"])
-         |> Array.delete("a", 1, 1)
+         two_author(
+           Array.insert(Doc.new(client_id: 100), "a", 0, ["x", "y"]),
+           &(&1 |> Array.push("a", ["z"]) |> Array.delete("a", 1, 1))
+         )
        end},
-      {"xmltext", fn -> Doc.new(client_id: 100) |> XMLText.insert("x", 0, "hi") end},
+      {"xmltext",
+       fn ->
+         two_author(
+           XMLText.insert(Doc.new(client_id: 100), "x", 0, "hi"),
+           &XMLText.insert(&1, "x", 2, "!")
+         )
+       end},
       {"xmlelement-attrs",
        fn ->
-         Doc.new(client_id: 100)
-         |> XMLElement.new_element("e", "p")
-         |> XMLElement.set_attribute("e", "k", "v")
+         two_author(
+           Doc.new(client_id: 100)
+           |> XMLElement.new_element("e", "p")
+           |> XMLElement.set_attribute("e", "k", "v"),
+           &XMLElement.set_attribute(&1, "e", "k3", "v3")
+         )
        end},
       {"xmlelement-child",
        fn ->
-         Doc.new(client_id: 100)
-         |> XMLElement.new_element("e", "p")
-         |> XMLElement.insert_child("e", 0, :text)
+         two_author(
+           Doc.new(client_id: 100)
+           |> XMLElement.new_element("e", "p")
+           |> XMLElement.set_attribute("e", "k", "v"),
+           &XMLElement.insert_child(&1, "e", 0, :text)
+         )
        end},
       {"xmlfragment-child",
        fn ->
-         Doc.new(client_id: 100)
-         |> XMLFragment.new_fragment("f")
-         |> XMLFragment.insert_child("f", 0, {:element, "b"})
+         two_author(
+           Doc.new(client_id: 100)
+           |> XMLFragment.new_fragment("f")
+           |> XMLFragment.insert_child("f", 0, {:element, "b"}),
+           & &1
+         )
        end},
       {"multi-type",
        fn ->
-         Doc.new(client_id: 100)
-         |> Text.insert("t", 0, "ab")
-         |> YMap.set("m", "k", "v")
-         |> Array.insert("a", 0, ["q"])
+         two_author(
+           Doc.new(client_id: 100) |> Text.insert("t", 0, "ab") |> YMap.set("m", "k", "v"),
+           &Array.insert(&1, "a", 0, ["q"])
+         )
        end},
+      {
+        "single-author-degenerate",
+        # ⚠️ KEPT DELIBERATELY. The identity-span case is a real caller
+        # situation, and it must still be classified — it just must never be the
+        # ONLY case, which is what it was before this was measured.
+        fn -> materialized(Text.insert(Doc.new(client_id: 100), "t", 0, "solo")) end
+      },
       {"empty", fn -> Doc.new(client_id: 100) end}
     ]
   end
@@ -141,23 +248,36 @@ defmodule Yepochs.TotalityTest do
     ]
   end
 
-  # One cell of the matrix, classified.
-  defp classify(sbuild, ebuild) do
-    src = materialized(sbuild.())
+  # One cell of the matrix, classified, in one direction.
+  #
+  # ⭐ Invariant 6: *"Reorienting a bridge swaps presentation, not capability:
+  # the same edits can cross in both directions."* For `:right` the roles simply
+  # exchange — the edit is authored on the DERIVED document and the origin
+  # document is the destination. Nothing else about the cell changes, which is
+  # what makes the two halves comparable.
+  defp classify(sbuild, ebuild, direction) do
+    origin = sbuild.()
 
-    case Snapshotter.snapshot(src) do
+    case Snapshotter.snapshot(origin) do
       {:error, e} ->
         {:no_bridge, e.code}
 
       {:ok, snap} ->
-        {:ok, dest} = Encoding.apply_update(Doc.new(client_id: 0), snap.update)
+        {:ok, derived} = Encoding.apply_update(Doc.new(client_id: 0), snap.update)
         {:ok, bridge} = Bridge.attach(snap.derivation, "ep:o", "ep:d", Algorithm.snapshot())
+
+        {src, dest} =
+          case direction do
+            :left -> {origin, derived}
+            :right -> {derived, origin}
+          end
+
         r = replica(src, 777)
         edited = ebuild.(r)
         update = delta(edited, src)
 
         case Yepochs.cross(bridge, update, src, dest,
-               from: :left,
+               from: direction,
                author: 5150,
                receipt_ref: "totality"
              ) do
@@ -182,25 +302,114 @@ defmodule Yepochs.TotalityTest do
   end
 
   describe "every case is classified" do
-    for sname <- @shape_names, ename <- @edit_names do
+    for sname <- @shape_names, ename <- @edit_names, direction <- [:left, :right] do
       @sname sname
       @ename ename
+      @direction direction
 
-      test "#{sname} / #{ename}" do
+      test "#{sname} / #{ename} / from #{direction}" do
         {_, sbuild} = Enum.find(shapes(), &(elem(&1, 0) == @sname))
         {_, ebuild} = Enum.find(edits(), &(elem(&1, 0) == @ename))
-        result = classify(sbuild, ebuild)
+        result = classify(sbuild, ebuild, @direction)
 
         if @sname in @impossible_shapes do
           assert {:no_bridge, :unsupported_content} = result,
                  "#{@sname} is listed impossible (design 0006 §2) but produced #{inspect(result)}"
         else
           assert {:crossed, mode} = result,
-                 "#{@sname} has no defined behaviour for this edit: #{inspect(result)}"
+                 "#{@sname} has no defined behaviour for this edit from #{@direction}: " <>
+                   inspect(result)
 
           assert mode in [:translated, :reauthored, :absorbed]
         end
       end
+    end
+  end
+
+  test "invariant 6: every shape/edit that crosses one way crosses the other" do
+    # ⭐ The doubled cells above would each pass while quietly disagreeing about
+    # WHICH cells work in which direction. This states the invariant directly:
+    # capability is a property of the pair, not of the orientation.
+    disagreements =
+      for sname <- @shape_names, ename <- @edit_names do
+        {_, sbuild} = Enum.find(shapes(), &(elem(&1, 0) == sname))
+        {_, ebuild} = Enum.find(edits(), &(elem(&1, 0) == ename))
+        l = classify(sbuild, ebuild, :left) |> elem(0)
+        r = classify(sbuild, ebuild, :right) |> elem(0)
+        if l == r, do: nil, else: {sname, ename, left: l, right: r}
+      end
+      |> Enum.reject(&is_nil/1)
+
+    assert disagreements == [],
+           "these cells cross in one direction only, which invariant 6 forbids: " <>
+             inspect(disagreements)
+  end
+
+  test "the corpus is not degenerate: at least one span is a real remapping" do
+    # ⛔ THE GUARD THAT WOULD HAVE CAUGHT THE FIRST VERSION OF THIS SUITE.
+    # A single-author document snapshots under its own client id, so every span
+    # comes out as an identity mapping and a translator that ignored the bridge
+    # entirely would pass every cell — exactly what invariant 9 forbids.
+    remapping =
+      for sname <- @shape_names, sname != "single-author-degenerate" do
+        {_, sbuild} = Enum.find(shapes(), &(elem(&1, 0) == sname))
+
+        case Snapshotter.snapshot(sbuild.()) do
+          {:ok, snap} ->
+            Enum.any?(snap.derivation.spans, fn sp ->
+              {sp.left_client, sp.left_clock} != {sp.right_client, sp.right_clock}
+            end)
+
+          {:error, _} ->
+            :no_bridge
+        end
+      end
+
+    assert Enum.any?(remapping, &(&1 == true)),
+           "every shape produced identity-only spans — the matrix cannot distinguish a real " <>
+             "translation from raw coordinate pass-through"
+  end
+
+  test "direction is load-bearing where a non-identity span carries the anchor" do
+    # ⭐ Mutation testing said the direction axis was decoration: mislabelling
+    # `from:` changed nothing across all 240 cells. The cause was the DATA, not
+    # the axis — every edit anchored inside an identity-mapped span, where a
+    # left lookup and a right lookup return the same coordinate.
+    #
+    # Here the anchor sits in the remapped span (left {200,0} ↔ right {100,5}).
+    base = materialized(Text.insert(Doc.new(client_id: 100), "t", 0, "hello"))
+    second = Text.insert(replica(base, 200), "t", 5, "!!")
+    {:ok, merged} = Encoding.apply_update(base, Encoding.encode_update(second))
+    origin = materialized(merged)
+
+    {:ok, snap} = Snapshotter.snapshot(origin)
+    {:ok, derived} = Encoding.apply_update(Doc.new(client_id: 0), snap.update)
+    {:ok, bridge} = Bridge.attach(snap.derivation, "ep:o", "ep:d", Algorithm.snapshot())
+
+    assert Enum.any?(snap.derivation.spans, fn sp ->
+             {sp.left_client, sp.left_clock} != {sp.right_client, sp.right_clock}
+           end),
+           "premise: this fixture must produce a remapped span"
+
+    edited = Text.insert(replica(derived, 777), "t", 6, "Z")
+    update = delta(edited, derived)
+    opts = [author: 5150, receipt_ref: "direction"]
+
+    {:ok, correct} = Yepochs.cross(bridge, update, derived, origin, [from: :right] ++ opts)
+    {:ok, mislabelled} = Yepochs.cross(bridge, update, derived, origin, [from: :left] ++ opts)
+
+    assert correct.mode == :translated,
+           "a correctly-oriented crossing over covered coordinates must preserve identity"
+
+    assert mislabelled.mode == :reauthored,
+           "a mislabelled crossing must NOT silently translate through the wrong side of the " <>
+             "correspondence; invariant 10 requires it to fall back"
+
+    # ⭐ And the fallback is sensible, not merely safe: the destination still
+    # ends up with the right value. What is lost is authorship identity.
+    for crossing <- [correct, mislabelled] do
+      {:ok, after_dest} = Encoding.apply_update(origin, crossing.update)
+      assert Text.to_string(after_dest, "t") == "hello!Z!"
     end
   end
 
@@ -220,18 +429,19 @@ defmodule Yepochs.TotalityTest do
     # correspondence exists to bridge.
     for name <- @impossible_shapes do
       {^name, build} = Enum.find(shapes(), &(elem(&1, 0) == name))
-      src = materialized(build.())
+      src = build.()
 
-      assert Enum.any?(observable(src), fn {_parent, _sub, content} ->
-               String.starts_with?(content, "{:type,")
-             end),
+      assert Enum.any?(BlockStore.all_items(src.store), &match?({:type, _}, &1.content)),
              "#{name} was expected to hold a nested-type child; it does not, so this test is " <>
                "no longer measuring the recorded mechanism"
 
       {update, _} = Doc.snapshot_update(%{src | client_id: 0})
       {:ok, replayed} = Encoding.apply_update(Doc.new(client_id: 0), update)
 
-      assert observable(replayed) == [],
+      assert Enum.all?(
+               BlockStore.all_items(replayed.store),
+               &(not match?({:type, _}, &1.content))
+             ),
              "#{name} now survives the replay — the impossibility has been LIFTED and " <>
                "design 0006 §2 must be revisited rather than this list extended"
     end

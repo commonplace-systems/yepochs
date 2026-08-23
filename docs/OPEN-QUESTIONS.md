@@ -274,8 +274,15 @@ something sensible in every case, but not the impossible."*
 
 ⭐ Read as method that is a **requirement to classify**: every case owes either a defined sensible
 behaviour or a demonstration that it cannot be done. `docs/design/0006-totality-classification.md`
-records the audit — 120 cells, **100 crossed and verified at the destination, 20 with no possible
-bridge, 0 unclassified** — and `test/totality_test.exs` enforces it.
+records the audit — 260 cells (13 shapes × 10 edits × **both directions**), **220 crossed and
+verified at the destination, 40 with no possible bridge, 0 unclassified** — and
+`test/totality_test.exs` enforces it.
+
+⛔ **The first version of that audit was worthless and mutation testing is the only reason I know
+it.** Every shape was single-author, so the minter reused its client id and **every correspondence
+span was an identity mapping** — a translator that ignored the bridge entirely would have passed all
+of it, which is exactly what invariant 9 forbids. Every shape is multi-author now, with a guard test
+that fails if the corpus ever goes degenerate again.
 
 ⚠️ **Two kinds of "impossible", kept apart deliberately:**
 
