@@ -41,7 +41,11 @@ defmodule Yepochs.Translator do
          {:ok, update} <- decode(update_or_binary, limits),
          {:ok, plan} <- Preflight.run(update, bridge, direction, opts),
          {:ok, carried} <- carried_derivation(plan),
-         encoded = Encoding.encode_items(Enum.map(update.items, &rewrite_item(&1, plan)), delete_set(plan)),
+         encoded =
+           Encoding.encode_items(
+             Enum.map(update.items, &rewrite_item(&1, plan)),
+             delete_set(plan)
+           ),
          :ok <- Limits.check(limits, :max_output_bytes, byte_size(encoded), :translate) do
       {:ok, %Translation{update: encoded, carried: carried, algorithm: algorithm}}
     end

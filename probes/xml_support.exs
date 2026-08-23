@@ -9,7 +9,12 @@ mat = fn d ->
 end
 
 probe = fn name, build ->
-  d = try do mat.(build.()) rescue e -> {:build_error, e} end
+  d =
+    try do
+      mat.(build.())
+    rescue
+      e -> {:build_error, e}
+    end
 
   case d do
     {:build_error, e} ->
@@ -17,6 +22,7 @@ probe = fn name, build ->
 
     doc ->
       nested = Doc.nested_subtype_names(doc)
+
       snap =
         case Doc.snapshot_update(%{doc | client_id: 0}) do
           {:error, r} -> "REFUSED #{inspect(elem(r, 0))}"
@@ -25,10 +31,14 @@ probe = fn name, build ->
 
       case Yepochs.Snapshotter.snapshot(doc, []) do
         {:ok, s} ->
-          IO.puts("#{String.pad_trailing(name, 30)} nested=#{length(nested)}  yelixer=#{snap}  yepochs=OK spans=#{length(s.derivation.spans)}")
+          IO.puts(
+            "#{String.pad_trailing(name, 30)} nested=#{length(nested)}  yelixer=#{snap}  yepochs=OK spans=#{length(s.derivation.spans)}"
+          )
 
         {:error, e} ->
-          IO.puts("#{String.pad_trailing(name, 30)} nested=#{length(nested)}  yelixer=#{snap}  yepochs=#{e.code} #{inspect(e.details)}")
+          IO.puts(
+            "#{String.pad_trailing(name, 30)} nested=#{length(nested)}  yelixer=#{snap}  yepochs=#{e.code} #{inspect(e.details)}"
+          )
       end
   end
 end

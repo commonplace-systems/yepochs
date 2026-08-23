@@ -72,7 +72,9 @@ defmodule Yepochs.CompatibilityTest do
 
     test "every pair is exchanged" do
       {:ok, i} = Derivation.invert(deriv([span(100, 0, 1, 0, 3)]))
-      assert [%Span{left_client: 1, left_clock: 0, right_client: 100, right_clock: 0, length: 3}] = i.spans
+
+      assert [%Span{left_client: 1, left_clock: 0, right_client: 100, right_clock: 0, length: 3}] =
+               i.spans
     end
 
     test "inversion is involutive" do
@@ -232,7 +234,9 @@ defmodule Yepochs.CompatibilityTest do
       assert Text.to_string(out, "t") == "abXYcd"
       assert Yelixer.BlockStore.client_ids(out.store) == [300]
 
-      left_clients = s.derivation.spans |> Enum.map(& &1.left_client) |> Enum.uniq() |> Enum.sort()
+      left_clients =
+        s.derivation.spans |> Enum.map(& &1.left_client) |> Enum.uniq() |> Enum.sort()
+
       assert left_clients == [300, 900], "both source clients must appear on the origin side"
     end
   end
@@ -247,7 +251,10 @@ defmodule Yepochs.CompatibilityTest do
       {:ok, out} = Yepochs.Update.decode(t.update)
 
       assert Yepochs.Update.owned_intervals(out) == [{200, 0, 2}]
-      externals = out |> Yepochs.Update.external_refs() |> Enum.map(&elem(&1.ref, 0)) |> Enum.uniq()
+
+      externals =
+        out |> Yepochs.Update.external_refs() |> Enum.map(&elem(&1.ref, 0)) |> Enum.uniq()
+
       assert externals == [500]
     end
 

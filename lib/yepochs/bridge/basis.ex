@@ -67,7 +67,11 @@ defmodule Yepochs.Bridge.Basis do
   # §23 forbids creating atoms from wire data.
   @spec from_map(map()) :: {:ok, t()} | :error
   def from_map(%{"kind" => kind, "producer" => producer} = map) do
-    with {:ok, kind} <- fetch(%{"snapshot" => :snapshot, "composition" => :composition, "explicit" => :explicit}, kind),
+    with {:ok, kind} <-
+           fetch(
+             %{"snapshot" => :snapshot, "composition" => :composition, "explicit" => :explicit},
+             kind
+           ),
          {:ok, origin} <- fetch_side(Map.get(map, "origin")),
          {:ok, derived} <- fetch_side(Map.get(map, "derived")),
          {:ok, producer} <- Algorithm.from_map(producer) do

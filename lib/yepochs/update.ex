@@ -59,7 +59,8 @@ defmodule Yepochs.Update do
          {:ok, {items, delete_set, _rest}} <- decode_raw(binary),
          update = %__MODULE__{items: items, delete_set: delete_set},
          :ok <- Limits.check(limits, :max_structs, length(items), :preflight),
-         :ok <- Limits.check(limits, :max_delete_intervals, delete_interval_count(update), :preflight),
+         :ok <-
+           Limits.check(limits, :max_delete_intervals, delete_interval_count(update), :preflight),
          :ok <- Limits.check(limits, :max_depth, nesting_depth(update), :preflight) do
       {:ok, update}
     end
@@ -69,7 +70,9 @@ defmodule Yepochs.Update do
 
   defp decode_raw(binary) do
     case Encoding.decode_update(binary) do
-      {:ok, _} = ok -> ok
+      {:ok, _} = ok ->
+        ok
+
       {:error, {:malformed_update, message}} ->
         {:error, Error.new(:malformed_update, :preflight, details: %{reason: message})}
     end

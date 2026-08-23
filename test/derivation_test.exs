@@ -23,7 +23,9 @@ defmodule Yepochs.DerivationTest do
 
     test "rejects overlapping LEFT intervals, because invariant 4 requires a partial bijection" do
       spans = [span(2, 0, 1, 0, 5), span(2, 3, 1, 100, 5)]
-      assert {:error, %Error{code: :invalid_derivation, phase: :derivation}} = Derivation.new(spans)
+
+      assert {:error, %Error{code: :invalid_derivation, phase: :derivation}} =
+               Derivation.new(spans)
     end
 
     test "rejects overlapping RIGHT intervals" do
@@ -97,6 +99,7 @@ defmodule Yepochs.DerivationTest do
     test "exchanges left and right coordinates in every span" do
       {:ok, d} = Derivation.new([span(9, 21, 17, 4, 5)])
       {:ok, i} = Derivation.invert(d)
+
       assert [%Span{left_client: 17, left_clock: 4, right_client: 9, right_clock: 21, length: 5}] =
                i.spans
     end

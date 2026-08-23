@@ -37,12 +37,14 @@ defmodule Yepochs.CrossingPropertyTest do
   # is a claim about EVERY valid edit, so the generator has to be able to defeat
   # the fast path.
   defp scenario do
-    gen all base <- letters(),
-            op <- member_of([:insert, :delete]),
-            pos <- integer(0..20),
-            payload <- string(?A..?Z, min_length: 1, max_length: 3),
-            coverage <- member_of([:full, :none]),
-            len <- integer(1..3) do
+    gen all(
+          base <- letters(),
+          op <- member_of([:insert, :delete]),
+          pos <- integer(0..20),
+          payload <- string(?A..?Z, min_length: 1, max_length: 3),
+          coverage <- member_of([:full, :none]),
+          len <- integer(1..3)
+        ) do
       source = mat(Text.insert(Doc.new(client_id: 100), "t", 0, base))
       size = String.length(base)
 
@@ -95,7 +97,7 @@ defmodule Yepochs.CrossingPropertyTest do
   defp text(%Doc{} = d), do: Text.to_string(d, "t")
 
   property "invariant 5 — every valid edit crosses, and lands the right observable state" do
-    check all scenario <- scenario() do
+    check all(scenario <- scenario()) do
       {_src, edited, _coverage} = scenario
       {bridge, update, source, destination} = setup_crossing(scenario)
 
@@ -109,8 +111,14 @@ defmodule Yepochs.CrossingPropertyTest do
 
       result =
         case c.update do
-          <<>> -> destination
-          u -> (fn -> {:ok, d} = Encoding.apply_update(destination, u); d end).()
+          <<>> ->
+            destination
+
+          u ->
+            (fn ->
+               {:ok, d} = Encoding.apply_update(destination, u)
+               d
+             end).()
         end
 
       assert text(result) == text(edited),
@@ -119,7 +127,7 @@ defmodule Yepochs.CrossingPropertyTest do
   end
 
   property "invariant 11 — every successful crossing returns a delta and a receipt" do
-    check all scenario <- scenario() do
+    check all(scenario <- scenario()) do
       {bridge, update, source, destination} = setup_crossing(scenario)
 
       {:ok, c} =
@@ -137,7 +145,7 @@ defmodule Yepochs.CrossingPropertyTest do
   end
 
   property "invariant 12 — bridge evolution is monotonic" do
-    check all scenario <- scenario() do
+    check all(scenario <- scenario()) do
       {bridge, update, source, destination} = setup_crossing(scenario)
 
       {:ok, c} =
@@ -170,7 +178,7 @@ defmodule Yepochs.CrossingPropertyTest do
   end
 
   property "a crossing is deterministic — same inputs, same bytes and same receipt" do
-    check all scenario <- scenario() do
+    check all(scenario <- scenario()) do
       {bridge, update, source, destination} = setup_crossing(scenario)
 
       results =

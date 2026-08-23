@@ -41,7 +41,13 @@ defmodule Yepochs.ConformanceTest do
   end
 
   defp cross(b, u, before, dest, extra \\ []) do
-    Yepochs.cross(b, u, before, dest, Keyword.merge([from: :left, author: 9000, receipt_ref: "r"], extra))
+    Yepochs.cross(
+      b,
+      u,
+      before,
+      dest,
+      Keyword.merge([from: :left, author: 9000, receipt_ref: "r"], extra)
+    )
   end
 
   defp text_after(%Doc{} = dest, <<>>), do: Text.to_string(dest, "t")
@@ -115,7 +121,8 @@ defmodule Yepochs.ConformanceTest do
           assert {:error, %Error{code: :unsupported_content}} = Snapshotter.snapshot(nested, [])
 
         _names ->
-          assert {:error, %Error{code: :unsupported_content}} = Snapshotter.snapshot(mat(nested), [])
+          assert {:error, %Error{code: :unsupported_content}} =
+                   Snapshotter.snapshot(mat(nested), [])
       end
     end
   end

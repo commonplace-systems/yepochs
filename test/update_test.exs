@@ -59,8 +59,11 @@ defmodule Yepochs.UpdateTest do
       %{u: u}
     end
 
-    test "owns the first clock of an owned interval", %{u: u}, do: assert(Update.owns?(u, {200, 0}))
-    test "owns a clock inside an owned interval", %{u: u}, do: assert(Update.owns?(u, {200, 1}))
+    test("owns the first clock of an owned interval", %{u: u},
+      do: assert(Update.owns?(u, {200, 0}))
+    )
+
+    test("owns a clock inside an owned interval", %{u: u}, do: assert(Update.owns?(u, {200, 1})))
 
     test "does NOT own the exclusive end of the interval", %{u: u} do
       refute Update.owns?(u, {200, 2})

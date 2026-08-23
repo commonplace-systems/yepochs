@@ -68,6 +68,7 @@ defmodule Yepochs.TranslatorTest do
       {:ok, after_} = Update.decode(t.update)
 
       assert before.delete_set.clients |> Map.keys() == [100]
+
       assert after_.delete_set.clients |> Map.keys() == [500],
              "the delete set must be rewritten into destination coordinates"
     end
@@ -106,7 +107,15 @@ defmodule Yepochs.TranslatorTest do
       u = Updates.insert_delta(source, 200, 2, "XY")
       {:ok, t} = Translator.translate(u, full_bridge(), :left, [])
 
-      assert [%Span{left_client: 200, left_clock: 0, right_client: 200, right_clock: 0, length: 2}] =
+      assert [
+               %Span{
+                 left_client: 200,
+                 left_clock: 0,
+                 right_client: 200,
+                 right_clock: 0,
+                 length: 2
+               }
+             ] =
                t.carried.spans
     end
 
@@ -127,7 +136,12 @@ defmodule Yepochs.TranslatorTest do
       }
 
       {:ok, t} =
-        Translator.translate(%{decoded | items: decoded.items ++ [nested]}, full_bridge(), :left, [])
+        Translator.translate(
+          %{decoded | items: decoded.items ++ [nested]},
+          full_bridge(),
+          :left,
+          []
+        )
 
       {:ok, out} = Update.decode(t.update)
 
@@ -208,12 +222,14 @@ defmodule Yepochs.TranslatorTest do
   describe "it is the low-level API, so it surfaces strict failures — §15.3" do
     test "propagates a missing anchor rather than re-authoring", %{source: source} do
       u = Updates.insert_delta(source, 200, 2, "XY")
+
       assert {:error, %Error{code: :missing_anchor}} =
                Translator.translate(u, bridge([span(100, 5, 500, 5, 3)]), :left, [])
     end
 
     test "propagates a missing delete target", %{source: source} do
       u = Updates.delete_delta(source, 200, 2, 3)
+
       assert {:error, %Error{code: :missing_operation_target}} =
                Translator.translate(u, bridge([span(100, 0, 500, 0, 2)]), :left, [])
     end

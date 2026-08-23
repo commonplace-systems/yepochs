@@ -16,14 +16,25 @@ content = fn %Doc{store: store} ->
   |> Enum.flat_map(fn
     %{content: {:string, s}} = i ->
       for n <- 0..(i.length - 1)//1, do: {{i.id.client, i.id.clock + n}, binary_part(s, n, 1)}
-    _ -> []
+
+    _ ->
+      []
   end)
   |> Map.new()
 end
 
 check = fn name, src0 ->
   src = mat.(src0)
-  det = %{src | client_id: (case Doc.client_ids(src) do [] -> 0; c -> Enum.min(c) end)}
+
+  det = %{
+    src
+    | client_id:
+        case Doc.client_ids(src) do
+          [] -> 0
+          c -> Enum.min(c)
+        end
+  }
+
   {bytes, dm} = Doc.snapshot_update(det)
   {:ok, out} = Encoding.apply_update(Doc.new(client_id: 1), bytes)
   from = content.(det)
@@ -38,8 +49,15 @@ check = fn name, src0 ->
   comparable = Enum.count(results, fn {_, _, a, b} -> a != nil and b != nil end)
 
   IO.puts("\n#{name}")
-  IO.puts("  source text #{inspect(Text.to_string(det, "t"))} -> snapshot text #{inspect(Text.to_string(out, "t"))}")
-  IO.puts("  dm entries: #{map_size(dm)}   COMPARABLE: #{comparable}/#{length(results)}   MISMATCHED: #{length(bad)}")
+
+  IO.puts(
+    "  source text #{inspect(Text.to_string(det, "t"))} -> snapshot text #{inspect(Text.to_string(out, "t"))}"
+  )
+
+  IO.puts(
+    "  dm entries: #{map_size(dm)}   COMPARABLE: #{comparable}/#{length(results)}   MISMATCHED: #{length(bad)}"
+  )
+
   for {n, o, a, b} <- results do
     flag = if a != nil and b != nil and a != b, do: "  <-- ⛔ MISMAP", else: ""
     IO.puts("    new #{inspect(n)}=#{inspect(a)}  <-  old #{inspect(o)}=#{inspect(b)}#{flag}")

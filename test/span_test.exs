@@ -56,7 +56,9 @@ defmodule Yepochs.SpanTest do
 
     test "rejects an interval whose end overflows the safe-integer range" do
       max = Bitwise.bsl(1, 53) - 1
-      assert {:error, %Error{code: :invalid_derivation}} = Span.new(valid(left_clock: max, length: 2))
+
+      assert {:error, %Error{code: :invalid_derivation}} =
+               Span.new(valid(left_clock: max, length: 2))
     end
 
     test "the error names the offending field rather than only prose" do

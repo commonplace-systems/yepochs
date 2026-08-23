@@ -15,23 +15,46 @@ end
 
 report = fn name, source0 ->
   source = materialize.(source0)
-  det = %{source | client_id: (case Doc.client_ids(source) do [] -> 0; cs -> Enum.min(cs) end)}
+
+  det = %{
+    source
+    | client_id:
+        case Doc.client_ids(source) do
+          [] -> 0
+          cs -> Enum.min(cs)
+        end
+  }
+
   case Doc.snapshot_update(det) do
-    {:error, reason} -> IO.puts("#{String.pad_trailing(name, 34)} REFUSED #{inspect(reason)}")
+    {:error, reason} ->
+      IO.puts("#{String.pad_trailing(name, 34)} REFUSED #{inspect(reason)}")
+
     {bytes, dm} ->
       fresh = Doc.new(client_id: 1)
       {:ok, applied} = Encoding.apply_update(fresh, bytes)
-      src_items = det.store |> BlockStore.client_ids() |> Enum.flat_map(&BlockStore.client_blocks(det.store, &1))
+
+      src_items =
+        det.store
+        |> BlockStore.client_ids()
+        |> Enum.flat_map(&BlockStore.client_blocks(det.store, &1))
+
       new_vals = Map.values(dm)
       injective? = length(Enum.uniq(new_vals)) == length(new_vals)
       src_lens = Enum.map(src_items, & &1.length) |> Enum.sum()
-      IO.puts("#{String.pad_trailing(name, 34)} dm=#{map_size(dm)} " <>
-              "src_items=#{length(src_items)} src_clocks=#{src_lens} " <>
-              "injective=#{injective?} " <>
-              "text=#{inspect(Text.to_string(applied, "t"))}")
+
+      IO.puts(
+        "#{String.pad_trailing(name, 34)} dm=#{map_size(dm)} " <>
+          "src_items=#{length(src_items)} src_clocks=#{src_lens} " <>
+          "injective=#{injective?} " <>
+          "text=#{inspect(Text.to_string(applied, "t"))}"
+      )
+
       unless injective? do
         dup = new_vals -- Enum.uniq(new_vals)
-        IO.puts("    ⛔ NOT A BIJECTION -- these source ids are claimed by >1 new id: #{inspect(Enum.uniq(dup))}")
+
+        IO.puts(
+          "    ⛔ NOT A BIJECTION -- these source ids are claimed by >1 new id: #{inspect(Enum.uniq(dup))}"
+        )
       end
   end
 end
@@ -39,7 +62,9 @@ end
 report.("plain text", Doc.new(client_id: 100) |> Text.insert("t", 0, "abcdefgh"))
 
 # Many small inserts -> many source items; the replay may consolidate them.
-frag = Enum.reduce(0..7, Doc.new(client_id: 100), fn i, d -> Text.insert(d, "t", i, <<?a + i>>) end)
+frag =
+  Enum.reduce(0..7, Doc.new(client_id: 100), fn i, d -> Text.insert(d, "t", i, <<?a + i>>) end)
+
 report.("8 separate 1-char inserts", frag)
 
 # Split the source by deleting in the middle (tombstones are not replayed).

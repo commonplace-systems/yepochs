@@ -66,7 +66,15 @@ defmodule Yepochs.Crossing.Receipt do
          {:ok, mode} <- Map.fetch(@modes, mode),
          {:ok, outcome} <- Map.fetch(@outcomes, outcome),
          {:ok, algorithm} <- Algorithm.from_map(algorithm) do
-      {:ok, %__MODULE__{ref: ref, from: from, to: to, mode: mode, outcome: outcome, algorithm: algorithm}}
+      {:ok,
+       %__MODULE__{
+         ref: ref,
+         from: from,
+         to: to,
+         mode: mode,
+         outcome: outcome,
+         algorithm: algorithm
+       }}
     end
   end
 

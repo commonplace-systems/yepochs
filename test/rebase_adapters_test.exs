@@ -222,7 +222,9 @@ defmodule Yepochs.RebaseAdaptersTest do
     test "requires an explicit author id" do
       before = mat(Text.insert(Doc.new(client_id: 100), "t", 0, "ab"))
       edited = mat(Text.insert(before, "t", 2, "c"))
-      assert {:error, %Error{code: :invalid_rebase_input}} = Rebase.rebase(before, edited, before, [])
+
+      assert {:error, %Error{code: :invalid_rebase_input}} =
+               Rebase.rebase(before, edited, before, [])
     end
   end
 end

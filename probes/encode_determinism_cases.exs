@@ -30,10 +30,13 @@ integrate = fn updates ->
 end
 
 pair = fn u, v -> {integrate.([u, v]), integrate.([v, u])} end
+
 blocks = fn d ->
-  d.store.clients |> Enum.sort()
+  d.store.clients
+  |> Enum.sort()
   |> Enum.map(fn {c, l} -> {c, Enum.map(l, &{&1.id.clock, &1.length})} end)
 end
+
 nblocks = fn d -> d.store.clients |> Enum.map(fn {_, l} -> length(l) end) |> Enum.sum() end
 
 scenario = fn name, u, v, expect ->
@@ -42,16 +45,23 @@ scenario = fn name, u, v, expect ->
   conv = Text.to_string(a, "t") == Text.to_string(b, "t")
   ds = Encoding.encode_delete_set(a.delete_set) == Encoding.encode_delete_set(b.delete_set)
   flag = if eq == expect, do: "  ", else: "??"
-  IO.puts("#{flag} #{String.pad_trailing(name, 34)} bytes_eq=#{String.pad_trailing(to_string(eq), 5)} " <>
-          "ds_eq=#{String.pad_trailing(to_string(ds), 5)} store_eq=#{String.pad_trailing(to_string(a.store == b.store), 5)} " <>
-          "converged=#{String.pad_trailing(to_string(conv), 5)} blocks=#{nblocks.(a)}/#{nblocks.(b)}")
+
+  IO.puts(
+    "#{flag} #{String.pad_trailing(name, 34)} bytes_eq=#{String.pad_trailing(to_string(eq), 5)} " <>
+      "ds_eq=#{String.pad_trailing(to_string(ds), 5)} store_eq=#{String.pad_trailing(to_string(a.store == b.store), 5)} " <>
+      "converged=#{String.pad_trailing(to_string(conv), 5)} blocks=#{nblocks.(a)}/#{nblocks.(b)}"
+  )
+
   {a, b}
 end
 
 IO.puts("== Q1: is encode_update a pure function of ONE fixed Doc term? ==")
 {fa, _} = pair.(del.(200, 2, 3), del.(300, 4, 3))
-IO.puts("   distinct outputs over 200 calls on one doc: " <>
-        "#{1..200 |> Enum.map(fn _ -> Encoding.encode_update(fa) end) |> Enum.uniq() |> length()}")
+
+IO.puts(
+  "   distinct outputs over 200 calls on one doc: " <>
+    "#{1..200 |> Enum.map(fn _ -> Encoding.encode_update(fa) end) |> Enum.uniq() |> length()}"
+)
 
 IO.puts("\n== Q2: which scenarios diverge across apply-order? (expect column = my prediction) ==")
 scenario.("insert-only (CONTROL, expect eq)", ins.(200, 2, "XY"), ins.(300, 4, "ZW"), true)
@@ -65,7 +75,11 @@ IO.puts("\n== Q3: on the overlapping case, WHERE is the divergence? ==")
 IO.puts("   delete_set A       : #{inspect(a.delete_set)}")
 IO.puts("   delete_set B       : #{inspect(b.delete_set)}")
 IO.puts("   DELETE SETS EQUAL  : #{a.delete_set == b.delete_set}")
-IO.puts("   encoded ds equal   : #{Encoding.encode_delete_set(a.delete_set) == Encoding.encode_delete_set(b.delete_set)}")
+
+IO.puts(
+  "   encoded ds equal   : #{Encoding.encode_delete_set(a.delete_set) == Encoding.encode_delete_set(b.delete_set)}"
+)
+
 IO.puts("   store terms equal  : #{a.store == b.store}")
 IO.puts("   blocks A           : #{inspect(blocks.(a))}")
 IO.puts("   blocks B           : #{inspect(blocks.(b))}")

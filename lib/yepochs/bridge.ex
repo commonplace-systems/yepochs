@@ -245,9 +245,15 @@ defmodule Yepochs.Bridge do
   # crossing result is a conflict, not an update — evolution is monotonic.
   defp check_receipt(existing, %Receipt{} = new) do
     case Enum.find(existing, &(&1.ref == new.ref)) do
-      nil -> :ok
-      ^new -> :ok
-      _ -> {:error, Error.new(:receipt_conflict, :bridge, path: [:receipt], details: %{ref: new.ref})}
+      nil ->
+        :ok
+
+      ^new ->
+        :ok
+
+      _ ->
+        {:error,
+         Error.new(:receipt_conflict, :bridge, path: [:receipt], details: %{ref: new.ref})}
     end
   end
 
@@ -325,13 +331,15 @@ defmodule Yepochs.Bridge do
   end
 
   @spec from_map(map()) :: {:ok, t()} | {:error, Error.t()}
-  def from_map(%{
-        "version" => @format_version,
-        "left_epoch" => left_epoch,
-        "right_epoch" => right_epoch,
-        "basis" => basis_map,
-        "correspondence" => spans
-      } = map) do
+  def from_map(
+        %{
+          "version" => @format_version,
+          "left_epoch" => left_epoch,
+          "right_epoch" => right_epoch,
+          "basis" => basis_map,
+          "correspondence" => spans
+        } = map
+      ) do
     with {:ok, basis} <- decode(Basis.from_map(basis_map), :basis),
          {:ok, receipts} <- decode_receipts(Map.get(map, "receipts", [])),
          {:ok, derivation} <- Derivation.from_map(%{"version" => 1, "spans" => spans}),
@@ -363,7 +371,8 @@ defmodule Yepochs.Bridge do
     end)
   end
 
-  defp decode_receipts(_), do: {:error, Error.new(:invalid_derivation, :bridge, path: [:receipts])}
+  defp decode_receipts(_),
+    do: {:error, Error.new(:invalid_derivation, :bridge, path: [:receipts])}
 
   defp decode({:ok, value}, _field), do: {:ok, value}
   defp decode(_, field), do: {:error, Error.new(:invalid_derivation, :bridge, path: [field])}

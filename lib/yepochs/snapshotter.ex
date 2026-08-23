@@ -120,6 +120,7 @@ defmodule Yepochs.Snapshotter do
              derived_clocks: length(right)
            }
          )}
+
       true ->
         left
         |> Enum.zip(right)

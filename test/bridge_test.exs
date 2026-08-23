@@ -43,8 +43,12 @@ defmodule Yepochs.BridgeTest do
   describe "attach/4" do
     test "assigns the ORIGIN to left and the DERIVED Yepoch to right" do
       assert {:ok, %Bridge{} = b} =
-               Bridge.attach(deriv([span(9, 21, 17, 4, 5)]), "origin-epoch", "derived-epoch",
-                 Algorithm.snapshot())
+               Bridge.attach(
+                 deriv([span(9, 21, 17, 4, 5)]),
+                 "origin-epoch",
+                 "derived-epoch",
+                 Algorithm.snapshot()
+               )
 
       assert b.left_epoch == "origin-epoch"
       assert b.right_epoch == "derived-epoch"
@@ -309,7 +313,9 @@ defmodule Yepochs.BridgeTest do
     end
 
     test "an ABSORBED edit still records its receipt though its correspondence is empty", %{b: b} do
-      {:ok, e} = Bridge.extend(b, delta([], receipt("r-abs", mode: :absorbed, outcome: :absorbed)))
+      {:ok, e} =
+        Bridge.extend(b, delta([], receipt("r-abs", mode: :absorbed, outcome: :absorbed)))
+
       assert [%Receipt{ref: "r-abs", outcome: :absorbed}] = e.receipts
       assert e.correspondence == b.correspondence
     end
@@ -410,9 +416,19 @@ defmodule Yepochs.BridgeTest do
 
       Bridge.from_map(put_in(map["basis"]["kind"], exotic))
       Bridge.from_map(put_in(map["basis"]["producer"]["id"], exotic))
-      Bridge.from_map(put_in(map["receipts"], [%{"ref" => "r", "from" => exotic, "to" => "right",
-        "mode" => "translated", "outcome" => "applied",
-        "algorithm" => %{"id" => "yepochs.cross", "version" => 1}}]))
+
+      Bridge.from_map(
+        put_in(map["receipts"], [
+          %{
+            "ref" => "r",
+            "from" => exotic,
+            "to" => "right",
+            "mode" => "translated",
+            "outcome" => "applied",
+            "algorithm" => %{"id" => "yepochs.cross", "version" => 1}
+          }
+        ])
+      )
 
       assert_raise ArgumentError, fn -> String.to_existing_atom(exotic) end
     end

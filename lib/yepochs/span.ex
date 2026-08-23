@@ -103,7 +103,8 @@ defmodule Yepochs.Span do
   """
   @spec sort_key(t()) ::
           {non_neg_integer(), non_neg_integer(), non_neg_integer(), non_neg_integer()}
-  def sort_key(%__MODULE__{} = s), do: {s.left_client, s.left_clock, s.right_client, s.right_clock}
+  def sort_key(%__MODULE__{} = s),
+    do: {s.left_client, s.left_clock, s.right_client, s.right_clock}
 
   @doc "Exchanges the two sides. Reorienting is presentation, not a new relationship (§13)."
   @spec flip(t()) :: t()

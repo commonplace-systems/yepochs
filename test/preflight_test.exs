@@ -124,7 +124,8 @@ defmodule Yepochs.PreflightTest do
       u = Updates.delete_delta(base, 200, 2, 3)
       partial = bridge([span(100, 0, 500, 0, 2)])
 
-      assert {:error, %Error{code: :missing_operation_target}} = Preflight.run(u, partial, :left, [])
+      assert {:error, %Error{code: :missing_operation_target}} =
+               Preflight.run(u, partial, :left, [])
     end
 
     test "a PARTIALLY covered delete range still fails — no silent discard", %{base: base} do

@@ -69,6 +69,7 @@ defmodule Yepochs.CrossingTest do
       assert {:ok, %Crossing{} = c} = Yepochs.cross(partial, u, source, dest, opts())
       assert c.mode == :reauthored
       assert c.outcome == :applied
+
       assert apply_to(dest, c.update) == "abXYcdefgh",
              "the observable effect must arrive even without an exact translation"
     end
@@ -107,7 +108,10 @@ defmodule Yepochs.CrossingTest do
       strict_only = [:missing_anchor, :missing_operation_target, :target_identity_collision]
 
       for b <- [bridge([]), bridge([span(100, 5, 500, 5, 3)]), bridge([span(100, 0, 200, 0, 8)])],
-          u <- [Updates.insert_delta(source, 200, 2, "XY"), Updates.delete_delta(source, 200, 1, 2)] do
+          u <- [
+            Updates.insert_delta(source, 200, 2, "XY"),
+            Updates.delete_delta(source, 200, 1, 2)
+          ] do
         case Yepochs.cross(b, u, source, dest, opts()) do
           {:ok, %Crossing{}} -> :ok
           {:error, %Error{code: code}} -> refute code in strict_only
@@ -140,7 +144,10 @@ defmodule Yepochs.CrossingTest do
       assert err.details.removed == "cde"
     end
 
-    test "the same edit succeeds against a destination that DOES hold it", %{source: source, dest: dest} do
+    test "the same edit succeeds against a destination that DOES hold it", %{
+      source: source,
+      dest: dest
+    } do
       u = Updates.delete_delta(source, 200, 2, 3)
       assert {:ok, c} = Yepochs.cross(bridge([]), u, source, dest, opts())
       assert apply_to(dest, c.update) == "abfgh"
@@ -148,7 +155,10 @@ defmodule Yepochs.CrossingTest do
   end
 
   describe "every crossing returns a delta and a receipt — invariants 11 and 12" do
-    test "a translated crossing returns a receipt naming both endpoints", %{source: source, dest: dest} do
+    test "a translated crossing returns a receipt naming both endpoints", %{
+      source: source,
+      dest: dest
+    } do
       u = Updates.insert_delta(source, 200, 2, "XY")
       {:ok, c} = Yepochs.cross(full_bridge(), u, source, dest, opts())
 
@@ -197,7 +207,10 @@ defmodule Yepochs.CrossingTest do
   end
 
   describe "determinism and required options" do
-    test "the same inputs produce the same bytes and the same receipt", %{source: source, dest: dest} do
+    test "the same inputs produce the same bytes and the same receipt", %{
+      source: source,
+      dest: dest
+    } do
       u = Updates.insert_delta(source, 200, 2, "XY")
 
       results =

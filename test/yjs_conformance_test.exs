@@ -88,7 +88,9 @@ defmodule Yepochs.YjsConformanceTest do
         refs = Update.external_refs(u)
 
         # Whatever an update defines, it must not also report as external.
-        for %{ref: ref} <- refs, do: refute(Update.owns?(u, ref), "#{name}: owned ref reported external")
+        for %{ref: ref} <- refs,
+            do: refute(Update.owns?(u, ref), "#{name}: owned ref reported external")
+
         assert is_list(owned)
       end
     end

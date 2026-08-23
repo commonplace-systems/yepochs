@@ -63,7 +63,9 @@ defmodule Yepochs.VersioningTest do
 
   describe "snapshot/2 honours an explicitly requested version" do
     test "accepts the version this build implements", %{doc: doc} do
-      assert {:ok, s} = Yepochs.snapshot(doc, algorithm: %Algorithm{id: "yepochs.snapshot", version: 2})
+      assert {:ok, s} =
+               Yepochs.snapshot(doc, algorithm: %Algorithm{id: "yepochs.snapshot", version: 2})
+
       assert s.algorithm.version == 2
     end
 
@@ -105,7 +107,9 @@ defmodule Yepochs.VersioningTest do
       b = bridge([span(100, 0, 500, 0, 8)])
 
       assert {:error, %Error{code: :incompatible_algorithm}} =
-               Yepochs.translate(u, b, :left, algorithm: %Algorithm{id: "yepochs.translate", version: 9})
+               Yepochs.translate(u, b, :left,
+                 algorithm: %Algorithm{id: "yepochs.translate", version: 9}
+               )
     end
 
     test "cross refuses an unavailable version", %{source: source, dest: dest} do

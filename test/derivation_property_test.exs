@@ -15,11 +15,13 @@ defmodule Yepochs.DerivationPropertyTest do
   # each span lands on. Ranges stay small so independently generated bridges
   # overlap often enough to actually exercise composition.
   defp span_list do
-    gen all steps <-
-              list_of(
-                tuple({integer(0..3), integer(0..3), integer(1..4), integer(1..3), integer(1..3)}),
-                max_length: 6
-              ) do
+    gen all(
+          steps <-
+            list_of(
+              tuple({integer(0..3), integer(0..3), integer(1..4), integer(1..3), integer(1..3)}),
+              max_length: 6
+            )
+        ) do
       {spans, _, _} =
         Enum.reduce(steps, {[], 0, 0}, fn {lgap, rgap, len, lclient, rclient}, {acc, lc, rc} ->
           l = lc + lgap
@@ -41,14 +43,14 @@ defmodule Yepochs.DerivationPropertyTest do
   end
 
   defp derivation do
-    gen all spans <- span_list() do
+    gen all(spans <- span_list()) do
       {:ok, d} = Derivation.new(spans)
       d
     end
   end
 
   defp bridge(left, right) do
-    gen all d <- derivation() do
+    gen all(d <- derivation()) do
       {:ok, b} = Bridge.attach(d, left, right, Algorithm.snapshot())
       b
     end
@@ -61,7 +63,7 @@ defmodule Yepochs.DerivationPropertyTest do
   end
 
   property "normalization is idempotent" do
-    check all d <- derivation() do
+    check all(d <- derivation()) do
       {:ok, once} = Derivation.normalize(d)
       {:ok, twice} = Derivation.normalize(once)
       assert once == twice
@@ -69,7 +71,7 @@ defmodule Yepochs.DerivationPropertyTest do
   end
 
   property "invert(invert(d)) == normalize(d)" do
-    check all d <- derivation() do
+    check all(d <- derivation()) do
       {:ok, n} = Derivation.normalize(d)
       {:ok, i} = Derivation.invert(d)
       {:ok, ii} = Derivation.invert(i)
@@ -78,14 +80,14 @@ defmodule Yepochs.DerivationPropertyTest do
   end
 
   property "serialization round-trips without semantic change" do
-    check all d <- derivation() do
+    check all(d <- derivation()) do
       {:ok, n} = Derivation.normalize(d)
       assert {:ok, ^n} = Derivation.from_map(Derivation.to_map(n))
     end
   end
 
   property "reorienting swaps presentation, not capability (invariant 6)" do
-    check all b <- bridge("A", "B") do
+    check all(b <- bridge("A", "B")) do
       {:ok, flipped} = Bridge.invert(b)
 
       for ref <- left_refs(b) do
@@ -100,7 +102,7 @@ defmodule Yepochs.DerivationPropertyTest do
   end
 
   property "lookup across a composed bridge equals successive lookup across its inputs" do
-    check all ab <- bridge("A", "B"), bc <- bridge("B", "C") do
+    check all(ab <- bridge("A", "B"), bc <- bridge("B", "C")) do
       {:ok, ac} = Bridge.compose([ab, bc])
 
       for ref <- left_refs(ab) do
@@ -116,7 +118,7 @@ defmodule Yepochs.DerivationPropertyTest do
   end
 
   property "composition is associative after normalization" do
-    check all ab <- bridge("A", "B"), bc <- bridge("B", "C"), cd <- bridge("C", "D") do
+    check all(ab <- bridge("A", "B"), bc <- bridge("B", "C"), cd <- bridge("C", "D")) do
       {:ok, li} = Bridge.compose([ab, bc])
       {:ok, left} = Bridge.compose([li, cd])
       {:ok, ri} = Bridge.compose([bc, cd])
@@ -128,7 +130,7 @@ defmodule Yepochs.DerivationPropertyTest do
   end
 
   property "exact duplicate extension is idempotent in both correspondence and receipts" do
-    check all b <- bridge("A", "B") do
+    check all(b <- bridge("A", "B")) do
       r = %Receipt{
         ref: "dup",
         from: :left,
@@ -149,7 +151,7 @@ defmodule Yepochs.DerivationPropertyTest do
   end
 
   property "composition never maps a coordinate neither input path covered" do
-    check all ab <- bridge("A", "B"), bc <- bridge("B", "C") do
+    check all(ab <- bridge("A", "B"), bc <- bridge("B", "C")) do
       {:ok, ac} = Bridge.compose([ab, bc])
 
       for span <- ac.correspondence.spans, n <- 0..(span.length - 1) do

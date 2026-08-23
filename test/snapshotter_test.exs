@@ -26,7 +26,8 @@ defmodule Yepochs.SnapshotterTest do
     d
   end
 
-  defp source(str, client \\ 100), do: materialized(Text.insert(Doc.new(client_id: client), "t", 0, str))
+  defp source(str, client \\ 100),
+    do: materialized(Text.insert(Doc.new(client_id: client), "t", 0, str))
 
   # {client, clock} => the value living at that coordinate, for any content kind.
   defp content_by_clock(%Doc{store: store}) do
@@ -147,8 +148,11 @@ defmodule Yepochs.SnapshotterTest do
       nested = Doc.new(client_id: 100) |> Text.insert("t", 0, "abc")
 
       case Yelixer.Doc.nested_subtype_names(nested) do
-        [] -> assert {:ok, _} = Snapshotter.snapshot(materialized(nested), [])
-        _ -> assert {:error, %Error{code: :unsupported_content}} = Snapshotter.snapshot(nested, [])
+        [] ->
+          assert {:ok, _} = Snapshotter.snapshot(materialized(nested), [])
+
+        _ ->
+          assert {:error, %Error{code: :unsupported_content}} = Snapshotter.snapshot(nested, [])
       end
     end
   end
@@ -211,7 +215,15 @@ defmodule Yepochs.SnapshotterTest do
       src = source("abcdefgh")
       {:ok, s} = Snapshotter.snapshot(src, [])
 
-      assert [%Span{left_client: 100, left_clock: 0, right_client: 100, right_clock: 0, length: 8}] =
+      assert [
+               %Span{
+                 left_client: 100,
+                 left_clock: 0,
+                 right_client: 100,
+                 right_clock: 0,
+                 length: 8
+               }
+             ] =
                s.derivation.spans
     end
 
@@ -241,6 +253,7 @@ defmodule Yepochs.SnapshotterTest do
              "expected two spans across the tombstone gap, got #{inspect(s.derivation.spans)}"
 
       {:ok, b} = Bridge.attach(s.derivation, "o", "d", Algorithm.snapshot())
+
       assert Bridge.right_ref(b, {100, 3}) == :unmapped,
              "§10.5 promises no mapping for tombstoned content"
 

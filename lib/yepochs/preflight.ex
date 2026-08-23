@@ -73,14 +73,17 @@ defmodule Yepochs.Preflight do
   end
 
   def run(_binary, %Bridge{}, direction, _opts) do
-    {:error, Error.new(:invalid_derivation, :preflight, path: [:direction], details: %{got: direction})}
+    {:error,
+     Error.new(:invalid_derivation, :preflight, path: [:direction], details: %{got: direction})}
   end
 
   # §15.9 — an identity-bearing field the translator does not understand must
   # not be copied through unchanged.
   defp reject_unsupported(update) do
     case Update.unsupported_features(update) do
-      [] -> :ok
+      [] ->
+        :ok
+
       features ->
         {:error,
          Error.new(:unsupported_translation_feature, :preflight, details: %{features: features})}
@@ -108,14 +111,19 @@ defmodule Yepochs.Preflight do
           do: ref
 
     case Enum.sort(collisions) do
-      [] -> :ok
+      [] ->
+        :ok
+
       refs ->
         {:error,
          Error.new(:target_identity_collision, :preflight,
            refs: refs,
            details: %{
              failures:
-               Enum.map(refs, &%{field: :owned_identity, code: :target_identity_collision, ref: &1})
+               Enum.map(
+                 refs,
+                 &%{field: :owned_identity, code: :target_identity_collision, ref: &1}
+               )
            }
          )}
     end
@@ -170,11 +178,12 @@ defmodule Yepochs.Preflight do
     # Range arithmetic, one contiguous run at a time (§15.8).
     Enum.reduce_while(0..(len - 1), {:ok, nil, []}, fn n, {:ok, _, acc} ->
       case translate_ref(bridge, direction, {client, clock + n}) do
-        {:ok, dest} -> {:cont, {:ok, nil, [dest | acc]}}
+        {:ok, dest} ->
+          {:cont, {:ok, nil, [dest | acc]}}
+
         :unmapped ->
           {:halt,
-           {:error,
-            %{field: :delete, code: :missing_operation_target, ref: {client, clock + n}}}}
+           {:error, %{field: :delete, code: :missing_operation_target, ref: {client, clock + n}}}}
       end
     end)
     |> case do
@@ -195,8 +204,12 @@ defmodule Yepochs.Preflight do
   defp missing_code(:parent), do: :missing_operation_target
 
   defp put_resolved(acc, :delete, _key, ranges), do: %{acc | deletes: acc.deletes ++ ranges}
-  defp put_resolved(acc, :parent, key, value), do: %{acc | parents: Map.put(acc.parents, key, value)}
-  defp put_resolved(acc, _anchor, key, value), do: %{acc | anchors: Map.put(acc.anchors, key, value)}
+
+  defp put_resolved(acc, :parent, key, value),
+    do: %{acc | parents: Map.put(acc.parents, key, value)}
+
+  defp put_resolved(acc, _anchor, key, value),
+    do: %{acc | anchors: Map.put(acc.anchors, key, value)}
 
   # Adjacent destination coordinates rejoin into one range; a non-contiguous
   # mapping splits the interval (§15.8).

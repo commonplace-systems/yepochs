@@ -141,12 +141,26 @@ defmodule Yepochs.Rebase do
   # empty one.
   defp apply_sequence(name, before, edited, doc) do
     case {plane_kind(before, name), plane_kind(edited, name)} do
-      {:empty, :empty} -> {:ok, doc, false}
-      {:text, k} when k in [:text, :empty] -> apply_text(name, before, edited, doc)
-      {:empty, :text} -> apply_text(name, before, edited, doc)
-      {:array, k} when k in [:array, :empty] -> apply_array(name, before, edited, doc)
-      {:empty, :array} -> apply_array(name, before, edited, doc)
-      {a, b} -> {:error, Error.new(:unsupported_crossing_content, :rebase, details: %{type: name, before: a, after: b})}
+      {:empty, :empty} ->
+        {:ok, doc, false}
+
+      {:text, k} when k in [:text, :empty] ->
+        apply_text(name, before, edited, doc)
+
+      {:empty, :text} ->
+        apply_text(name, before, edited, doc)
+
+      {:array, k} when k in [:array, :empty] ->
+        apply_array(name, before, edited, doc)
+
+      {:empty, :array} ->
+        apply_array(name, before, edited, doc)
+
+      {a, b} ->
+        {:error,
+         Error.new(:unsupported_crossing_content, :rebase,
+           details: %{type: name, before: a, after: b}
+         )}
     end
   end
 
@@ -215,8 +229,7 @@ defmodule Yepochs.Rebase do
           doc = if inserted != [], do: Array.insert(doc, name, at, inserted), else: doc
           {:ok, doc, true}
         else
-          {:error,
-           Error.new(:rebase_conflict, :rebase, details: %{type: name, removed: removed})}
+          {:error, Error.new(:rebase_conflict, :rebase, details: %{type: name, removed: removed})}
         end
     end
   end
