@@ -29,7 +29,17 @@ Both modules exist on `commonplace` main today:
 *"need `Commonplace.Store` and stay"* — the dependency has to be broken before either can leave.
 Plan's open question, in its words, is **"whether 124 lines is a package or a module."**
 
-## ⛔ The sequencing constraint, recorded so it is not rediscovered late
+## ⛔ The gate — see `docs/design/0001-build-order-and-gate.md` for the binding wording
+
+⚠️ **The section below is the ORIGINAL wording and it is superseded.** `commonplace-plan` corrected
+it on 2026-08-23: the gated act is **`commonplace` taking a dependency on `yepochs`** — in either
+direction of arrival, and it stays gated **even if no file ever moves**. Building the library is
+open; ⭐ **reading commonplace's code and reproducing its fixtures is explicitly NOT gated.**
+
+⇒ Read [`docs/design/0001-build-order-and-gate.md`](docs/design/0001-build-order-and-gate.md)
+before acting on anything in this section.
+
+## The sequencing constraint, recorded so it is not rediscovered late
 
 commonplace-plan's queue carries two findings that bound when this extraction can happen:
 

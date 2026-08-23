@@ -1,5 +1,6 @@
 {application,yepochs,
-             [{modules,['Elixir.Yepochs.Derivation','Elixir.Yepochs.Error',
+             [{modules,['Elixir.Yepochs.Algorithm','Elixir.Yepochs.Bridge',
+                        'Elixir.Yepochs.Derivation','Elixir.Yepochs.Error',
                         'Elixir.Yepochs.Span']},
               {optional_applications,[]},
               {applications,[kernel,stdlib,elixir,logger,stream_data]},
