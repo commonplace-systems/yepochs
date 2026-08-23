@@ -34,6 +34,20 @@ defmodule Yepochs.Snapshotter do
   `:unsupported_content` — which is precisely what §10.2 requires when an
   encountered shared type cannot be preserved. **It MUST NOT silently omit,
   stringify, or flatten it.**
+
+  ## ⚠️ Determinism is over the exact `Doc` REPRESENTATION
+
+  > Byte determinism is defined over the exact Yelixer `Doc` representation
+  > supplied by the caller, including item identities, struct boundaries, and
+  > arrival-dependent internal representation. **Two Docs with the same
+  > observable value but different internal representations are different
+  > inputs.**
+
+  ⛔ This library MUST NOT be read as canonicalizing across different valid
+  internal representations of the same observable Yjs value. It is deterministic
+  for one fixed exact input representation, algorithm version, adapter version,
+  codec version, and option set — and measured evidence that the qualifier is
+  load-bearing is in `docs/design/0002-encode-determinism.md`.
   """
 
   alias Yelixer.BlockStore

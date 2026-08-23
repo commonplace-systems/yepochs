@@ -3,7 +3,13 @@
 **For:** jes (spec) and `commonplace-plan` (sequencing) · **Repo:** `yepochs` · **Updated:**
 2026-08-23
 
-Everything here is **decided-but-not-by-me** or **undecided**. None of it blocks the library: it is
+> ⭐ **ALL EIGHT QUESTIONS BELOW HAVE BEEN RULED ON.** See
+> [`proposals/2026-08-23-rulings-on-open-questions.md`](proposals/2026-08-23-rulings-on-open-questions.md)
+> (sha256 `3e38e3fa…`). Each section now records the ruling and what changed in this repo. **Nothing
+> here is awaiting an answer.** What remains outstanding is a *specification* revision — §9 of the
+> rulings lists ten required spec edits — and one `commonplace-plan` integration milestone.
+
+Everything here was **decided-but-not-by-me** or **undecided**, and is now **answered**. None of it blocked the library: it is
 complete against spec r2 §6–§24 with coverage for §28.1–§28.4, and it compiles, tests, type-checks
 and formats clean.
 
@@ -18,10 +24,11 @@ mislead badly if the two were flattened together.
 | ⛔ **GATED** | Decided elsewhere; not this repo's to satisfy. |
 | ✅ **ANSWERED** | Closed, recorded here so it is not re-asked. |
 | ⚪ **CHOICE** | I chose; flagged because a reader might expect otherwise. |
+| ⭐ **RULED** | Answered by jes on 2026-08-23. The row says what changed here. |
 
 ---
 
-## 1. 🟡 Fixture 19 — should a re-authored crossing return correspondence spans?
+## 1. ⭐ RULED — Fixture 19 — should a re-authored crossing return correspondence spans?
 
 **§17** says a re-authored delta adds spans *"wherever the rebase adapter can prove that newly
 authored destination items correspond to source items."* **§28.2(19)** then makes non-identity
@@ -44,11 +51,24 @@ this changes.
 Combined with an empty correspondence, that **latches** — a chain of re-authored edits never
 recovers strict translation until a fresh snapshot re-establishes one.
 
-⛔ **I have deliberately not invented a strategy to close this.**
+### ⭐ Ruling
+
+**Zero or more proven spans; empty is valid in 0.1.** A re-authored crossing MUST return a receipt
+and MUST return every correspondence it can prove — and that set MAY be empty. **The specification
+must not require a non-identity span**; fixture 19 is replaced by four fixtures.
+
+⇒ **The behaviour was conforming; the FIXTURE changed.** `test/conformance_test.exs` now carries
+19a–19d: a receipt plus zero-or-more spans, an empty correspondence being valid, a later dependent
+edit still crossing, and — for 19d — an assertion naming what must be added if any adapter ever
+starts claiming provenance.
+
+The latch is acknowledged as a consequence rather than a defect: recovering strict translation
+through provenance-aware adapters is *"a desirable optimization, not a 0.1 correctness
+requirement."*
 
 ---
 
-## 2. 🟡 Tombstones narrow the strict path much further than §15 reads
+## 2. ⭐ RULED — Tombstones narrow the strict path much further than §15 reads
 
 Full write-up: [`design/0004`](design/0004-tombstones-narrow-the-strict-path.md).
 
@@ -79,13 +99,31 @@ So it is the tombstones, not the foreign bytes, the client ids, or the edit.
 3. **Have the caller trim the delete set** to the edit's own deletions. Cheapest, but makes the
    caller responsible for a wire-format detail that is easy to get wrong and silent when wrong.
 
-⇒ **Practical summary:** the strict, identity-preserving path is available mainly for documents that
-have never had a deletion. For a system whose premise is preserving Yjs authorship across epochs,
-that is narrower than §15 suggests.
+### ⭐ Ruling — option 2, implemented inside the library
+
+**Checked omission**, and explicitly **not** option 3: *"The caller MUST NOT be responsible for
+knowing that Yelixer's `Encoding.encode_diff/2` includes the document's cumulative delete set."*
+Tombstone-preserving snapshots stay deferred.
+
+**Implemented.** Each clock of a delete interval is classified as translated, checked-historical
+(omitted) or novel-and-uncovered (a failure), so a mixed interval splits. Omissions appear in the
+preflight plan's `omitted` field, never silently in the encoder. `translate/4` has no endpoint
+states and so stays conservative **by construction**; `cross/5` supplies them and keeps the strict
+path.
+
+⇒ **Upstream Yjs vectors 003–005 now cross as `:translated`**, where they previously re-authored
+solely for repeating pre-existing tombstones.
+
+⚠️ **A bug worth knowing about, found implementing this:** my first version of the ruling's
+condition (c) checked the destination for a live item at the **same raw coordinate**. The snapshot
+mints under the smallest source client id, so a destination routinely holds live items at
+coordinates numerically equal to source tombstones — comparing them is raw numeric equality *across
+epochs*, which invariants 1 and 9 forbid. Condition (c) in fact **follows** from (a) and (b) and
+needs no lookup.
 
 ---
 
-## 3. 🔵 §15.10 has no caller-side precondition, and needs one
+## 3. ⭐ RULED — determinism is over the exact `Doc` representation
 
 **§15.10** requires byte-deterministic translated output. **§10.4** pins determinism to *"the same
 decoded source state, including its Yjs item identities and supported struct representation."*
@@ -103,12 +141,24 @@ to the caller, so a caller may legitimately assemble histories in different arri
 having a fixed struct representation, and that a differently-assembled `Doc` is a **different
 input**, not a violated guarantee.
 
+### ⭐ Ruling — and it TIGHTENS the contract rather than relaxing it
+
+The normative caller contract is now stated on every Doc-taking API — `snapshot/2`, `rebase/4`, and
+`cross/5` for both `source_before` and `destination`:
+
+> Byte determinism is defined over the exact Yelixer `Doc` representation supplied by the caller,
+> including item identities, struct boundaries, and arrival-dependent internal representation. **Two
+> Docs with the same observable value but different internal representations are different inputs.**
+
+⛔ The library **must not claim canonicalization** across different valid internal representations
+of one observable value. Not a precondition of `translate/4`, which never constructs a Doc.
+
 ⇒ ⛔ **If §10.4's "including its struct representation" is ever simplified to pin the decoded
 *value*, §10.4 becomes unsatisfiable on this substrate overnight.**
 
 ---
 
-## 4. ⛔ §30 criterion 14 — commonplace consuming the package
+## 4. ⭐ RULED — criterion 14 leaves the library acceptance set
 
 `commonplace-plan` owns this and has ruled the gated act is **`commonplace` taking a dependency on
 `yepochs`, in either direction of arrival, even if no file ever moves.**
@@ -117,12 +167,25 @@ input**, not a violated guarantee.
 — the same ref commonplace pins — and on nothing else; it is unpublished and unwired, so the
 dependency cannot arrive by accident.
 
-■ Reading commonplace's tree and recreating its fixtures is **explicitly not gated** and has been
-done (§28.1).
+### ⭐ Ruling
+
+Criterion 14 **moves out of 0.1 acceptance** and becomes a `commonplace-plan` integration milestone
+(*"`commonplace` takes a pinned dependency on `yepochs` and routes at least one existing crossing
+path through it"*). It is replaced by a library-owned criterion:
+
+> The package exposes the complete documented API and can be consumed by an external Mix project
+> without a Commonplace dependency.
+
+⇒ **That half is testable and now tested** (`test/invariants_test.exs`): no Commonplace package in
+the dependency tree, no `Elixir.Commonplace*` module loaded, and every documented public function
+exported.
+
+■ Reading commonplace's tree and recreating its fixtures remains **explicitly not gated** and has
+been done (§28.1). *"Mutating the Commonplace dependency graph does not."*
 
 ---
 
-## 5. ✅ §26's referent — answered as a class caveat
+## 5. ⭐ RULED — specs name architectural LAYERS, not repository locations
 
 Asked whether *"Remains in `commonplace-merkle-crdt`"* meant that repo or the `commonplace`
 codebase. **Answer:** *"the specs could easily be confused about repo boundaries."*
@@ -134,6 +197,17 @@ not**. Before designing to any *"X remains in repo R"* claim, `command grep` R's
 `commonplace-merkle-crdt`, whose `lib/` contains **zero** references to them — all three are in
 `~/commonplace`. (Control: that `lib/` holds two modules total, so the zero is real.)
 
+### ⭐ Ruling
+
+Repository-placement claims are **advisory and MUST NOT be treated as architectural requirements**.
+Normative language should name layers instead: commit ancestry and common-ancestor discovery belong
+**above** `yepochs`, in the Merkle-CRDT layer; crossing policy, bridge persistence, signatures and
+commit construction belong to their stated layers; current modules **may remain** in the Commonplace
+monorepo until a separate extraction plan moves them.
+
+⇒ *"Before asserting that a module 'remains in repository R,' an implementation plan MUST verify
+that repository's current tree."*
+
 ---
 
 ## 6. ✅ Naming — settled
@@ -144,7 +218,10 @@ throughout.
 
 ---
 
-## 7. ⚪ Choices I made that a reader might expect to have gone the other way
+## 7. ⭐ RULED ACCEPTED — the choices I made
+
+**All four accepted.** §7.3 additionally names my synthetic-name post-condition as *"the correct
+guard"* and confirms *"silent loss of XML children is never acceptable."*
 
 | choice | why |
 |---|---|
@@ -155,7 +232,7 @@ throughout.
 
 ---
 
-## 8. 🔵 Smaller things nobody has ruled on
+## 8. ⭐ RULED — the smaller items
 
 - **§28.4 cross-language vectors are five cases.** They cover concurrent inserts, sequential inserts,
   and three delete shapes. Nothing exercises maps, arrays, or XML against upstream.
@@ -170,10 +247,38 @@ throughout.
 - **Derivation maps are persisted** into snapshot commit metadata and are **content-addressed
   inputs** ⇒ changing how they are built **changes commit ids**. No fix here is drop-in.
 
+### ⭐ Rulings
+
+- **Cross-language vectors:** the five upstream text vectors establish **text/delete
+  interoperability only** and *"MUST NOT be presented as evidence for maps, arrays, or XML."* One
+  upstream-authored crossing vector per claimed type is required before 0.1 claims more. ⚠️ **Not
+  yet added — this is the one outstanding item of work in this document.**
+- **Inversion guard:** every inversion API MUST validate the partial bijection first; a map-key
+  collision MUST return `:invalid_derivation` and **must not silently discard a correspondence**.
+  Already true here; now asserted directly in `test/invariants_test.exs`.
+- **Clock spans:** the measured one-of-eight coverage is *"sufficient evidence for the clock-span
+  requirement."*
+- ⭐ **Span-complete derivations are snapshot algorithm VERSION 3, not 2.** Version 2 stays the
+  legacy item-start algorithm. ⇒ **This build was stamping v3 semantics as v2** — one durable
+  version tag with two meanings. Fixed: `Algorithm.snapshot/0` returns v3, and `snapshot_v2/0` is
+  *recognised but never produced*, so requesting it returns `:incompatible_algorithm`.
+
 ---
+
+## Still outstanding after the rulings
+
+1. **The specification revision itself.** §9 of the rulings lists **ten required spec edits**; this
+   repo tracks them but does not own the spec.
+2. **Cross-language vectors for maps and arrays** (ruling 8.1), before 0.1 claims interoperability
+   beyond text and deletes. The current claim has been narrowed to what the vectors actually show.
+3. **The `commonplace-plan` integration milestone** (ruling 5) — not this repo's to satisfy.
 
 ## What I explicitly did *not* do
 
-⛔ Invent answers to 1, 2 or 3. Each has a current behaviour that works, is pinned by a test, and is
-cheap to change once decided. **Guessing would have converted an open question into an undocumented
-decision** — which is the failure mode this document exists to prevent.
+⛔ Invent answers to 1, 2 or 3 while they were open. Each had a current behaviour that worked, was
+pinned by a test, and was cheap to change once decided.
+
+⇒ **That turned out to matter more than expected: the rulings answered them per-item, in this
+document's ordering, with its status distinctions intact — and two of the three reversed nothing
+while the third moved real work into this library.** A guessed answer to any of them would have been
+an undocumented decision by the time the real one arrived.

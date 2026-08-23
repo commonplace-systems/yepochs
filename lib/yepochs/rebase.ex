@@ -29,6 +29,19 @@ defmodule Yepochs.Rebase do
   arrays and reports `:absorbed` — returning an empty update for a real edit. A
   wrong answer, not an error, and the same shape as the type-registry trap in
   `Yepochs.Snapshotter`.
+  ## ⚠️ Determinism is over the exact `Doc` REPRESENTATION
+
+  > Byte determinism is defined over the exact Yelixer `Doc` representation
+  > supplied by the caller, including item identities, struct boundaries, and
+  > arrival-dependent internal representation. **Two Docs with the same
+  > observable value but different internal representations are different
+  > inputs.**
+
+  ⛔ This library MUST NOT be read as canonicalizing across different valid
+  internal representations of the same observable Yjs value. It is deterministic
+  for one fixed exact input representation, algorithm version, adapter version,
+  codec version, and option set — measured evidence that the qualifier is
+  load-bearing is in `docs/design/0002-encode-determinism.md`.
   """
 
   alias Yelixer.Doc

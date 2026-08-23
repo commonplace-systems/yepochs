@@ -94,6 +94,15 @@ defmodule Yepochs do
 
   ⛔ The caller MUST apply or durably admit the returned update **before**
   applying its bridge delta (§15.2).
+
+  ⚠️ **`source_before` and `destination` are exact-representation inputs.** Byte
+  determinism is defined over the exact Yelixer `Doc` representation supplied,
+  including item identities, struct boundaries, and arrival-dependent internal
+  representation. **Two Docs with the same observable value but different
+  internal representations are different inputs** — see
+  `docs/design/0002-encode-determinism.md`. This does not apply to
+  `translate/4`, which transforms decoded update bytes without constructing a
+  Doc.
   """
   @spec cross(Bridge.t(), binary(), Doc.t(), Doc.t(), keyword()) ::
           {:ok, Crossing.t()} | {:error, Error.t()}

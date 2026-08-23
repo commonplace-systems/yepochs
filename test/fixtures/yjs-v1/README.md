@@ -38,3 +38,8 @@ canonicalisation standard, so byte agreement is not guaranteed.
 
 ⇒ **What this corpus tests for `yepochs` is narrower and is the part that matters here:** that the
 library's operations work on updates it did not author, decoded from the real wire format.
+
+⛔ **And narrower still, per ruling 8.1:** these five cases are all **text and deletes**. They
+establish text/delete interoperability and **MUST NOT be presented as evidence for maps, arrays, or
+XML.** Before 0.1 claims cross-language support for those, at least one upstream-authored crossing
+vector per claimed type has to be added here.

@@ -229,29 +229,79 @@ defmodule Yepochs.ConformanceTest do
     end
   end
 
-  describe "⛔ fixtures NOT satisfied — recorded rather than omitted" do
-    test "19: a re-authored crossing returns NO correspondence spans in 0.1" do
-      # §28.2 fixture 19 wants a re-authored crossing to return non-identity
-      # correspondence spans. §17 hedges this ("wherever the rebase adapter can
-      # prove that newly authored destination items correspond to source items"),
-      # and the 0.1 adapters prove NONE: they re-author from an observable diff
-      # and cannot say which destination item answers which source item.
-      #
-      # This test pins the CURRENT behaviour so the gap is visible and so
-      # implementing it is a deliberate change, not an accident.
+  describe "fixture 19 (as ruled) — zero or more PROVEN spans; empty is valid" do
+    # ⭐ jes ruled the original fixture out: the spec MUST NOT require every
+    # re-authored crossing to return a non-identity span. It is replaced by the
+    # four below. The previous version of this file recorded fixture 19 as NOT
+    # SATISFIED; that was the right call at the time and the ruling reversed it —
+    # the FIXTURE changed, not the behaviour.
+
+    test "19a — a re-authored crossing returns a receipt and zero or more proven spans" do
       source = Updates.base("abcdefgh", 100)
       dest = Updates.base("abcdefgh", 500)
       u = Updates.insert_delta(source, 200, 2, "XY")
 
       {:ok, c} = cross(bridge("A", "B", []), u, source, dest)
+
       assert c.mode == :reauthored
-
-      assert c.bridge_delta.correspondence.spans == [],
-             "if this now returns spans, fixture 19 is satisfied — update this test"
-
       assert %Receipt{mode: :reauthored} = c.bridge_delta.receipt
+      assert %Derivation{} = c.bridge_delta.correspondence
     end
 
+    test "19b — an empty correspondence is VALID when the adapter cannot prove provenance" do
+      # The 0.1 observable-diff adapters prove nothing: they know the destination
+      # now reads "abXYcdefgh", not which destination item answers which source
+      # item. Ruling: conforming.
+      source = Updates.base("abcdefgh", 100)
+      dest = Updates.base("abcdefgh", 500)
+      u = Updates.insert_delta(source, 200, 2, "XY")
+
+      {:ok, c} = cross(bridge("A", "B", []), u, source, dest)
+      assert c.bridge_delta.correspondence.spans == []
+      assert c.bridge_delta.receipt.ref == "r"
+    end
+
+    test "19c — a later dependent edit still crosses, re-authoring again if needed" do
+      source = Updates.base("abcdefgh", 100)
+      dest = Updates.base("abcdefgh", 500)
+      b = bridge("A", "B", [])
+
+      first_doc = Text.insert(Updates.replica(source, 200), "t", 2, "XY")
+      first = Updates.delta(first_doc, source)
+      {:ok, c1} = cross(b, first, source, dest, receipt_ref: "c1")
+      assert c1.mode == :reauthored
+
+      {:ok, b2} = Bridge.extend(b, c1.bridge_delta)
+      {:ok, dest2} = Encoding.apply_update(dest, c1.update)
+      {:ok, source2} = Encoding.apply_update(source, first)
+
+      second = Updates.delta(Text.insert(first_doc, "t", 3, "Q"), first_doc)
+      {:ok, c2} = cross(b2, second, source2, dest2, receipt_ref: "c2")
+
+      assert text_after(dest2, c2.update) == "abXQYcdefgh"
+    end
+
+    test "19d — an adapter claiming provenance is tested for the EXACT spans it emits" do
+      # No 0.1 adapter claims provenance, so the fixture is satisfied by asserting
+      # the negative precisely: the built-ins emit no spans, and the assertion
+      # names what would have to change.
+      source = Updates.base("abcdefgh", 100)
+      dest = Updates.base("abcdefgh", 500)
+
+      for edit <- [
+            Updates.insert_delta(source, 200, 2, "XY"),
+            Updates.delete_delta(source, 200, 1, 2)
+          ] do
+        {:ok, c} = cross(bridge("A", "B", []), edit, source, dest)
+
+        assert c.bridge_delta.correspondence.spans == [],
+               "a built-in adapter emitted spans — it now CLAIMS provenance, and " <>
+                 "fixture 19d requires the exact spans to be asserted here"
+      end
+    end
+  end
+
+  describe "⛔ fixtures NOT satisfied — recorded rather than omitted" do
     test "26: destination admission is the CALLER's, and out of scope here" do
       # §28.2 fixture 26 ("destination admission through its own writer without
       # adding another log writer") is about the enclosing log protocol. §4 lists

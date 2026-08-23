@@ -8,6 +8,10 @@ defmodule Yepochs.YjsConformanceTest do
   different implementation on one side: the bytes are foreign, and the question
   is whether this library's operations work on updates it did not author.
 
+  ⛔ **Scope, per ruling 8.1:** these five cases are text and deletes. A green run
+  establishes **text/delete interoperability only** and is not evidence for
+  maps, arrays or XML.
+
   See `test/fixtures/yjs-v1/README.md` for provenance and for what a green run
   here does *not* mean.
   """

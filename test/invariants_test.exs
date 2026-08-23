@@ -94,6 +94,86 @@ defmodule Yepochs.InvariantsTest do
     end
   end
 
+  describe "§30 acceptance (as ruled) — consumable without a Commonplace dependency" do
+    test "⛔ nothing in the dependency tree is a Commonplace package" do
+      # Ruling 5 replaced "the Commonplace monorepo consumes the package" with a
+      # library-owned criterion. This is the half that IS ours, and it is
+      # checkable rather than asserted.
+      deps = Mix.Project.config()[:deps] |> Enum.map(&elem(&1, 0))
+
+      refute Enum.any?(deps, fn d -> String.starts_with?(to_string(d), "commonplace") end),
+             "yepochs must not depend on a Commonplace package, got #{inspect(deps)}"
+
+      assert :yelixer in deps
+    end
+
+    test "no loaded module comes from a Commonplace application" do
+      commonplace =
+        :code.all_loaded()
+        |> Enum.map(fn {m, _} -> to_string(m) end)
+        |> Enum.filter(&String.starts_with?(&1, "Elixir.Commonplace"))
+
+      assert commonplace == [], "a Commonplace module is loaded: #{inspect(commonplace)}"
+    end
+
+    test "the documented public API is reachable" do
+      # function_exported?/3 answers false for an UNLOADED module, so the module
+      # must be loaded first or this measures the code server rather than the API.
+      assert Code.ensure_loaded?(Yepochs)
+
+      for {fun, arity} <- [
+            {:snapshot, 2},
+            {:preflight, 4},
+            {:translate, 4},
+            {:translate_path, 3},
+            {:rebase, 4},
+            {:cross, 5}
+          ] do
+        assert function_exported?(Yepochs, fun, arity),
+               "Yepochs.#{fun}/#{arity} is documented but not exported"
+      end
+    end
+  end
+
+  describe "ruling 8.2 — every inversion validates the partial bijection first" do
+    test "a map-key collision returns :invalid_derivation, never a silent discard" do
+      # Two left coordinates naming one right coordinate cannot be inverted into
+      # a function. The span model refuses to CONSTRUCT it, so the collision is
+      # caught before any inverse exists to lose an entry.
+      colliding = [
+        %Span{left_client: 1, left_clock: 0, right_client: 9, right_clock: 0, length: 1},
+        %Span{left_client: 2, left_clock: 0, right_client: 9, right_clock: 0, length: 1}
+      ]
+
+      assert {:error, %Yepochs.Error{code: :invalid_derivation}} = Derivation.new(colliding)
+
+      # And the same on the other side.
+      mirrored = [
+        %Span{left_client: 9, left_clock: 0, right_client: 1, right_clock: 0, length: 1},
+        %Span{left_client: 9, left_clock: 0, right_client: 2, right_clock: 0, length: 1}
+      ]
+
+      assert {:error, %Yepochs.Error{code: :invalid_derivation}} = Derivation.new(mirrored)
+    end
+
+    test "Derivation.invert and Bridge.invert both validate before inverting" do
+      bad = %Derivation{
+        format_version: 1,
+        spans: [
+          %Span{left_client: 1, left_clock: 0, right_client: 9, right_clock: 0, length: 2},
+          %Span{left_client: 1, left_clock: 1, right_client: 8, right_clock: 0, length: 2}
+        ]
+      }
+
+      assert {:error, %Yepochs.Error{code: :invalid_derivation}} = Derivation.invert(bad)
+
+      {:ok, ok} = Derivation.new([])
+      {:ok, b} = Bridge.attach(ok, "l", "r", Yepochs.Algorithm.snapshot())
+      assert {:ok, _} = Bridge.invert(%{b | correspondence: %{b.correspondence | spans: []}})
+      assert {:error, %Yepochs.Error{}} = Bridge.invert(%{b | correspondence: bad})
+    end
+  end
+
   # Invariants 2, 4-13 are enforced and tested in the suites that own them:
   #
   #   2  snapshotter_test        observable equivalence; new identity space
