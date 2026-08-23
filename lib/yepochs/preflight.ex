@@ -17,6 +17,7 @@ defmodule Yepochs.Preflight do
   alias Yepochs.Bridge
   alias Yepochs.Derivation
   alias Yepochs.Error
+  alias Yepochs.Limits
   alias Yepochs.Update
 
   @enforce_keys [:direction, :owned, :anchors, :parents, :deletes, :algorithm]
@@ -44,7 +45,11 @@ defmodule Yepochs.Preflight do
 
   def run(%Update{} = update, %Bridge{} = bridge, direction, opts)
       when direction in [:left, :right] do
+    limits = Limits.from_opts(opts)
+
     with :ok <- Derivation.validate(bridge.correspondence),
+         :ok <-
+           Limits.check(limits, :max_spans, length(bridge.correspondence.spans), :preflight),
          :ok <- reject_unsupported(update),
          owned = Update.owned_intervals(update),
          :ok <- check_collisions(owned, bridge, direction, opts),
@@ -63,7 +68,8 @@ defmodule Yepochs.Preflight do
 
   def run(binary, %Bridge{} = bridge, direction, opts)
       when is_binary(binary) and direction in [:left, :right] do
-    with {:ok, update} <- Update.decode(binary), do: run(update, bridge, direction, opts)
+    with {:ok, update} <- Update.decode(binary, Limits.from_opts(opts)),
+         do: run(update, bridge, direction, opts)
   end
 
   def run(_binary, %Bridge{}, direction, _opts) do

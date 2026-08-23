@@ -22,6 +22,7 @@ defmodule Yepochs.Translator do
   alias Yepochs.Bridge
   alias Yepochs.Derivation
   alias Yepochs.Error
+  alias Yepochs.Limits
   alias Yepochs.Preflight
   alias Yepochs.Span
   alias Yepochs.Translation
@@ -34,23 +35,20 @@ defmodule Yepochs.Translator do
   @spec translate(binary() | Update.t(), Bridge.t(), Preflight.direction(), keyword()) ::
           {:ok, Translation.t()} | {:error, Error.t()}
   def translate(update_or_binary, %Bridge{} = bridge, direction, opts \\ []) do
-    with {:ok, update} <- decode(update_or_binary),
-         {:ok, plan} <- Preflight.run(update, bridge, direction, opts),
-         {:ok, carried} <- carried_derivation(plan) do
-      items = Enum.map(update.items, &rewrite_item(&1, plan))
+    limits = Limits.from_opts(opts)
 
-      {:ok,
-       %Translation{
-         update: Encoding.encode_items(items, delete_set(plan)),
-         carried: carried,
-         algorithm: Algorithm.translate()
-       }}
+    with {:ok, update} <- decode(update_or_binary, limits),
+         {:ok, plan} <- Preflight.run(update, bridge, direction, opts),
+         {:ok, carried} <- carried_derivation(plan),
+         encoded = Encoding.encode_items(Enum.map(update.items, &rewrite_item(&1, plan)), delete_set(plan)),
+         :ok <- Limits.check(limits, :max_output_bytes, byte_size(encoded), :translate) do
+      {:ok, %Translation{update: encoded, carried: carried, algorithm: Algorithm.translate()}}
     end
   end
 
-  defp decode(%Update{} = update), do: {:ok, update}
-  defp decode(binary) when is_binary(binary), do: Update.decode(binary)
-  defp decode(_), do: {:error, Error.new(:malformed_update, :translate)}
+  defp decode(%Update{} = update, _limits), do: {:ok, update}
+  defp decode(binary, limits) when is_binary(binary), do: Update.decode(binary, limits)
+  defp decode(_, _), do: {:error, Error.new(:malformed_update, :translate)}
 
   # §15.4: an owned item keeps its client, clock and length. §15.6/§15.7: every
   # external reference is replaced from the plan. A reference the plan does not

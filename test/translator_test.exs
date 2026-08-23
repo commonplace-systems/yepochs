@@ -224,3 +224,88 @@ defmodule Yepochs.TranslatorTest do
     end
   end
 end
+
+defmodule Yepochs.TranslatePathTest do
+  use ExUnit.Case, async: true
+
+  alias Yepochs.Algorithm
+  alias Yepochs.Bridge
+  alias Yepochs.Derivation
+  alias Yepochs.Error
+  alias Yepochs.Span
+  alias Yepochs.Test.Updates
+
+  defp span(lc, lk, rc, rk, len) do
+    {:ok, s} =
+      Span.new(left_client: lc, left_clock: lk, right_client: rc, right_clock: rk, length: len)
+
+    s
+  end
+
+  defp bridge(l, r, spans) do
+    {:ok, d} = Derivation.new(spans)
+    {:ok, b} = Bridge.attach(d, l, r, Algorithm.snapshot())
+    b
+  end
+
+  defp text(dest, update) do
+    {:ok, d} = Yelixer.Encoding.apply_update(dest, update)
+    Yelixer.Types.Text.to_string(d, "t")
+  end
+
+  setup_all do
+    %{source: Updates.base("abcdefgh", 100), final: Updates.base("abcdefgh", 900)}
+  end
+
+  test "translates across two composed bridges", %{source: source, final: final} do
+    u = Updates.insert_delta(source, 200, 2, "XY")
+    ab = bridge("A", "B", [span(100, 0, 500, 0, 8)])
+    bc = bridge("B", "C", [span(500, 0, 900, 0, 8)])
+
+    assert {:ok, t} = Yepochs.translate_path(u, [ab, bc], [])
+    assert text(final, t.update) == "abXYcdefgh"
+  end
+
+  test "translates across three composed bridges", %{source: source, final: final} do
+    u = Updates.delete_delta(source, 200, 2, 3)
+    ab = bridge("A", "B", [span(100, 0, 500, 0, 8)])
+    bc = bridge("B", "C", [span(500, 0, 700, 0, 8)])
+    cd = bridge("C", "D", [span(700, 0, 900, 0, 8)])
+
+    assert {:ok, t} = Yepochs.translate_path(u, [ab, bc, cd], [])
+    assert text(final, t.update) == "abfgh"
+  end
+
+  test "a single-bridge path behaves like translate/4", %{source: source} do
+    u = Updates.insert_delta(source, 200, 2, "XY")
+    ab = bridge("A", "B", [span(100, 0, 500, 0, 8)])
+
+    assert {:ok, direct} = Yepochs.translate(u, ab, :left, [])
+    assert {:ok, via_path} = Yepochs.translate_path(u, [ab], [])
+    assert direct.update == via_path.update
+  end
+
+  test "rejects a disconnected path", %{source: source} do
+    u = Updates.insert_delta(source, 200, 2, "XY")
+    ab = bridge("A", "B", [span(100, 0, 500, 0, 8)])
+    cd = bridge("C", "D", [span(700, 0, 900, 0, 8)])
+
+    assert {:error, %Error{code: :bridge_endpoint_mismatch}} =
+             Yepochs.translate_path(u, [ab, cd], [])
+  end
+
+  test "rejects an empty path", %{source: source} do
+    u = Updates.insert_delta(source, 200, 2, "XY")
+    assert {:error, %Error{code: :bridge_endpoint_mismatch}} = Yepochs.translate_path(u, [], [])
+  end
+
+  test "fails strictly when composition loses the coverage the edit needs", %{source: source} do
+    # §18: composition is partial, and a strict path translation that fails is
+    # the caller's cue to cross edge-by-edge instead.
+    u = Updates.insert_delta(source, 200, 2, "XY")
+    ab = bridge("A", "B", [span(100, 0, 500, 0, 8)])
+    bc = bridge("B", "C", [span(500, 6, 900, 6, 2)])
+
+    assert {:error, %Error{code: :missing_anchor}} = Yepochs.translate_path(u, [ab, bc], [])
+  end
+end

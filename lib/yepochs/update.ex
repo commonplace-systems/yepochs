@@ -22,6 +22,7 @@ defmodule Yepochs.Update do
   alias Yelixer.ID
   alias Yelixer.Item
   alias Yepochs.Error
+  alias Yepochs.Limits
 
   @enforce_keys [:items, :delete_set]
   defstruct @enforce_keys
@@ -46,18 +47,61 @@ defmodule Yepochs.Update do
   Decodes an update binary. Never raises: yelixer's decoder catches malformed
   input and returns a typed tuple, which is mapped to `:malformed_update`.
   """
-  @spec decode(binary()) :: {:ok, t()} | {:error, Error.t()}
-  def decode(binary) when is_binary(binary) do
-    case Encoding.decode_update(binary) do
-      {:ok, {items, delete_set, _rest}} ->
-        {:ok, %__MODULE__{items: items, delete_set: delete_set}}
+  @spec decode(binary(), Limits.t() | keyword()) :: {:ok, t()} | {:error, Error.t()}
+  def decode(binary, limits \\ [])
 
+  def decode(binary, limits) when is_binary(binary) do
+    limits = Limits.new(limits)
+
+    # Checked BEFORE decoding: a size limit that only fires after the work is
+    # done is not a limit.
+    with :ok <- Limits.check(limits, :max_update_bytes, byte_size(binary), :preflight),
+         {:ok, {items, delete_set, _rest}} <- decode_raw(binary),
+         update = %__MODULE__{items: items, delete_set: delete_set},
+         :ok <- Limits.check(limits, :max_structs, length(items), :preflight),
+         :ok <- Limits.check(limits, :max_delete_intervals, delete_interval_count(update), :preflight),
+         :ok <- Limits.check(limits, :max_depth, nesting_depth(update), :preflight) do
+      {:ok, update}
+    end
+  end
+
+  def decode(_, _), do: {:error, Error.new(:malformed_update, :preflight)}
+
+  defp decode_raw(binary) do
+    case Encoding.decode_update(binary) do
+      {:ok, _} = ok -> ok
       {:error, {:malformed_update, message}} ->
         {:error, Error.new(:malformed_update, :preflight, details: %{reason: message})}
     end
   end
 
-  def decode(_), do: {:error, Error.new(:malformed_update, :preflight)}
+  defp delete_interval_count(%__MODULE__{delete_set: %DeleteSet{clients: clients}}) do
+    clients |> Map.values() |> Enum.map(&length/1) |> Enum.sum()
+  end
+
+  @doc "Longest chain of ID-valued parents within this update. Spec §23."
+  @spec nesting_depth(t()) :: non_neg_integer()
+  def nesting_depth(%__MODULE__{items: items}) do
+    by_id = Map.new(items, fn i -> {{i.id.client, i.id.clock}, i} end)
+    Enum.reduce(items, 0, fn item, acc -> max(acc, depth_of(item, by_id, 0)) end)
+  end
+
+  # Bounded by the item count, so a cyclic parent chain in hostile input cannot
+  # loop forever.
+  defp depth_of(_item, by_id, seen) when seen > map_size(by_id), do: seen
+
+  defp depth_of(item, by_id, seen) do
+    case structural_parent(item) do
+      nil ->
+        seen
+
+      %ID{client: c, clock: k} ->
+        case Map.fetch(by_id, {c, k}) do
+          {:ok, parent} -> depth_of(parent, by_id, seen + 1)
+          :error -> seen + 1
+        end
+    end
+  end
 
   @doc """
   Every item interval this update defines, as `{client, clock, length}`,
@@ -109,8 +153,18 @@ defmodule Yepochs.Update do
   end
 
   # A named root parent is not an item coordinate (§15.7).
+  #
+  # ⚠️ Only `{:id, _}` counts here. An `{:infer, _}` parent is yelixer's
+  # decode-time note that the parent was NOT on the wire, so demanding a bridge
+  # mapping for it would fail translations over references that are never
+  # emitted. Depth measurement uses `structural_parent/1` instead, which does
+  # count it, because nesting is about shape rather than about what is encoded.
   defp id_parent(%Item{parent: {:id, %ID{} = id}}), do: id
   defp id_parent(%Item{}), do: nil
+
+  defp structural_parent(%Item{parent: {:id, %ID{} = id}}), do: id
+  defp structural_parent(%Item{parent: {:infer, %ID{} = id}}), do: id
+  defp structural_parent(%Item{}), do: nil
 
   defp external_entry(update, field, ref) do
     if owns?(update, ref), do: [], else: [%{field: field, ref: ref, length: 1}]

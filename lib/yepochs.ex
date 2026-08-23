@@ -44,6 +44,36 @@ defmodule Yepochs do
   @doc "Strict, identity-preserving translation. Spec §15.3."
   defdelegate translate(update, bridge, direction, opts \\ []), to: Translator
 
+  @doc """
+  Strict translation across a composed path. Spec §18.
+
+  ⚠️ **This is the strict-only algebra, not the Bridge contract.** A live tree
+  normally propagates an edit **one edge at a time**, because each hop lets the
+  intermediate endpoints learn the edit and lets every bilateral relationship
+  evolve. `translate_path/3` composes the path and translates once instead — it
+  does **not** update the constituent bridges, and it does not re-author.
+
+  ⇒ If it fails, the caller must cross the edit edge by edge, or call `cross/5`
+  against a real bridge joining the final endpoint states.
+
+  The update is understood at the first bridge's **left** endpoint; path
+  discovery and the choice between competing paths belong to the caller.
+  """
+  @spec translate_path(binary(), [Bridge.t()], keyword()) ::
+          {:ok, Yepochs.Translation.t()} | {:error, Error.t()}
+  def translate_path(update, bridges, opts \\ [])
+
+  def translate_path(_update, [], _opts),
+    do: {:error, Error.new(:bridge_endpoint_mismatch, :translate, path: [:path])}
+
+  def translate_path(update, bridges, opts) when is_list(bridges) do
+    # Compose first, then decode and translate ONCE -- §18 forbids re-decoding
+    # and re-encoding at every hop.
+    with {:ok, composed} <- Bridge.compose(bridges) do
+      Translator.translate(update, composed, :left, opts)
+    end
+  end
+
   @doc "Positional re-authoring. Spec §19."
   defdelegate rebase(before, edited, target, opts \\ []), to: Rebase
 

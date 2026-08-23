@@ -5,16 +5,26 @@ extraction** of commonplace's epoch handling into its own package.
 
 ## Status
 
-**Repo created 2026-08-23 at jes's request. Spec filed the same day. Nothing extracted yet.**
+**A working library.** Spec r2 §6–§19 and §22–§24 are implemented against the Yelixer substrate:
 
-Per the spec, `yepochs` is **Commonplace-independent**: a small Elixir library on the Yelixer
-substrate for moving Yjs changes between histories that represent compatible content under
-**different internal Yjs identities** — Yepochs, deterministic snapshots, derivations, bridges,
-strict translation, and positional rebase as an explicit fallback.
+| area | spec | state |
+|---|---|---|
+| Span · Derivation · Bridge · Basis · Delta · Receipt | §8, §9 | ✅ |
+| bridge lookup, inversion, composition, evolution | §11–§14, §17 | ✅ |
+| deterministic snapshotting, algorithm v2 | §10 | ✅ |
+| strict preflight and translation, both directions | §15.3–§16 | ✅ |
+| bilateral crossing — translated / re-authored / absorbed | §15.1, §15.2 | ✅ |
+| strict path translation | §18 | ✅ |
+| positional re-authoring | §19 | ✅ Y.Text adapter; other planes refused, not flattened |
+| error model and resource limits | §22, §23 | ✅ |
 
-Until this repo has content, `yepochs` was **absent**: the log-reducer and merkle-crdt briefs both
-record it as "not a repo, a planned extraction". That is no longer true of the *repo*; it is still
-true of the *code*.
+**190 tests and 8 properties, no compile warnings.** Every load-bearing check is
+**mutation-tested** — disabled one at a time to confirm the suite reddens. That practice found
+ornamental gates in *every* module it was applied to, and three genuine defects it would otherwise
+have missed. See [`docs/design/`](docs/design/).
+
+Not yet built: rebase adapters for Y.Map, Y.Array and Y.XML (§19.2), and the conformance-fixture
+corpus of §28.
 
 ## What would move here — measured 2026-08-23, not assumed
 

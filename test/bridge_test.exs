@@ -388,11 +388,18 @@ defmodule Yepochs.BridgeTest do
     end
 
     test "does not create atoms from wire strings" do
-      before = :erlang.system_info(:atom_count)
+      # Asserting the specific string never became an atom, rather than counting
+      # atoms globally -- the global counter races with every other async test.
+      exotic = "bridge-wire-string-#{System.unique_integer([:positive])}"
       map = Bridge.to_map(bridge("a", "b", [span(1, 0, 2, 0, 1)]))
-      Bridge.from_map(put_in(map["basis"]["kind"], "yepochs-not-an-atom-yet"))
-      Bridge.from_map(put_in(map["basis"]["producer"]["id"], "also-not-an-atom-yet"))
-      assert :erlang.system_info(:atom_count) == before
+
+      Bridge.from_map(put_in(map["basis"]["kind"], exotic))
+      Bridge.from_map(put_in(map["basis"]["producer"]["id"], exotic))
+      Bridge.from_map(put_in(map["receipts"], [%{"ref" => "r", "from" => exotic, "to" => "right",
+        "mode" => "translated", "outcome" => "applied",
+        "algorithm" => %{"id" => "yepochs.cross", "version" => 1}}]))
+
+      assert_raise ArgumentError, fn -> String.to_existing_atom(exotic) end
     end
   end
 end
