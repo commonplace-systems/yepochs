@@ -267,6 +267,28 @@ guard"* and confirms *"silent loss of XML children is never acceptable."*
 
 ---
 
+## Totality: classified, not assumed
+
+**jes:** *"it's possible the definition of bridge is mathematically impossible, we just need to do
+something sensible in every case, but not the impossible."*
+
+⭐ Read as method that is a **requirement to classify**: every case owes either a defined sensible
+behaviour or a demonstration that it cannot be done. `docs/design/0006-totality-classification.md`
+records the audit — 120 cells, **100 crossed and verified at the destination, 20 with no possible
+bridge, 0 unclassified** — and `test/totality_test.exs` enforces it.
+
+⚠️ **Two kinds of "impossible", kept apart deliberately:**
+
+- **Substrate limit** — nested-type children are dropped by the replay, so such a document can hold
+  no bridge. This could be lifted by a better replay, and a test **fails if it ever is**, so the
+  limit cannot outlive its cause.
+- **Mathematical limit** — a source tombstone has no counterpart in a snapshot of live content, so
+  no derivation can map it. Not reachable by better engineering. The edit still crosses; what is
+  lost is authorship identity, announced rather than hidden.
+
+⛔ **Whether the sentence is also about §6.6's *definition* of a bridge is not decided here** — that
+would be a spec edit, and this repo does not own the spec.
+
 ## Still outstanding after the rulings
 
 1. **The specification revision itself.** §9 of the rulings lists **ten required spec edits**; this

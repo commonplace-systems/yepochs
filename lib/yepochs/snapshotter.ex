@@ -59,6 +59,8 @@ defmodule Yepochs.Snapshotter do
   alias Yepochs.Snapshot
   alias Yepochs.Span
 
+  @registry_remedy "the doc's type registry does not describe its store; round-trip it through Yelixer.Encoding.apply_update/2 before snapshotting"
+
   @spec snapshot(Doc.t(), keyword()) :: {:ok, Snapshot.t()} | {:error, Error.t()}
   def snapshot(%Doc{} = source, opts \\ []) do
     with {:ok, algorithm} <- Algorithm.resolve(opts, Algorithm.snapshot(), :snapshot),
@@ -126,14 +128,14 @@ defmodule Yepochs.Snapshotter do
 
     cond do
       length(left) != length(right) or actual != length(right) ->
+        counts = %{
+          source_clocks: actual,
+          traversed_clocks: length(left),
+          derived_clocks: length(right)
+        }
+
         {:error,
-         Error.new(:unsupported_content, :snapshot,
-           details: %{
-             source_clocks: actual,
-             traversed_clocks: length(left),
-             derived_clocks: length(right)
-           }
-         )}
+         Error.new(:unsupported_content, :snapshot, details: Map.merge(counts, cause(source)))}
 
       true ->
         left
@@ -145,6 +147,54 @@ defmodule Yepochs.Snapshotter do
           {:error, _} = error -> error
         end
     end
+  end
+
+  # ⭐ The two causes of `:unsupported_content` are NOT interchangeable, and a
+  # caller cannot act sensibly on them the same way.
+  #
+  #   * `:unregistered_types` — the type registry does not describe the store's
+  #     content, so the replay has nothing to iterate. A locally-authored `Doc`
+  #     is in this state: its items sit in `client_pending` and `types` is
+  #     empty. ⇒ The content is bridgeable; only this doc is not, and one
+  #     round-trip through `apply_update/2` fixes it. So the remedy is REPORTED.
+  #
+  #   * `:nested_type_children` — an item whose content is a nested type
+  #     instance. `snapshot_update/1` does not re-author those, so the derived
+  #     document cannot hold the source's observable content and NO
+  #     correspondence exists to bridge. ⇒ There is no caller-side remedy, and
+  #     none is offered: `docs/design/0006-totality-classification.md` §2.
+  #
+  # ⚠️ Nested-type content is checked FIRST. A doc can be in both states at once,
+  # and reporting the remediable cause for a document that also holds an
+  # unbridgeable child would send the caller round a round-trip that cannot help.
+  defp cause(%Doc{} = source) do
+    cond do
+      nested_type_children?(source) -> %{cause: :nested_type_children}
+      unregistered_types?(source) -> %{cause: :unregistered_types, remedy: @registry_remedy}
+      true -> %{cause: :unknown}
+    end
+  end
+
+  defp nested_type_children?(%Doc{store: store}) do
+    store
+    |> BlockStore.all_items()
+    |> Enum.reject(& &1.deleted)
+    |> Enum.any?(&match?({:type, _}, &1.content))
+  end
+
+  # The registry is silent about content the store holds under a named parent.
+  defp unregistered_types?(%Doc{types: types, store: store}) do
+    named =
+      store
+      |> BlockStore.all_items()
+      |> Enum.reject(& &1.deleted)
+      |> Enum.flat_map(fn
+        %{parent: {:named, name}} -> [name]
+        _ -> []
+      end)
+      |> MapSet.new()
+
+    not MapSet.subset?(named, MapSet.new(Map.keys(types)))
   end
 
   # Every live clock the store actually holds under ANY named parent.
