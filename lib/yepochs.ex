@@ -129,7 +129,12 @@ defmodule Yepochs do
   end
 
   defp attempt_strict(bridge, update, source_before, destination, from, ref, opts) do
-    case Translator.translate(update, bridge, from, opts) do
+    # ⛔ Ruling 3: the endpoint states are what make checked omission provable.
+    # `translate/4` called directly does not receive them and therefore stays
+    # conservative -- the difference is structural, not a policy flag.
+    strict_opts = Keyword.merge(opts, source_before: source_before, destination: destination)
+
+    case Translator.translate(update, bridge, from, strict_opts) do
       {:ok, translation} ->
         {:ok, carried} = orient(translation.carried, from)
 

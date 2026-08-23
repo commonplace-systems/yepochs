@@ -14,13 +14,16 @@ defmodule Yepochs.Preflight do
   """
 
   alias Yepochs.Algorithm
+  alias Yelixer.BlockStore
+  alias Yelixer.DeleteSet
+  alias Yelixer.Doc
   alias Yepochs.Bridge
   alias Yepochs.Derivation
   alias Yepochs.Error
   alias Yepochs.Limits
   alias Yepochs.Update
 
-  @enforce_keys [:direction, :owned, :anchors, :parents, :deletes, :algorithm]
+  @enforce_keys [:direction, :owned, :anchors, :parents, :deletes, :omitted, :algorithm]
   defstruct @enforce_keys
 
   @type direction :: :left | :right
@@ -32,6 +35,7 @@ defmodule Yepochs.Preflight do
           anchors: %{item_ref() => item_ref()},
           parents: %{item_ref() => item_ref()},
           deletes: [{non_neg_integer(), non_neg_integer(), pos_integer()}],
+          omitted: [{non_neg_integer(), non_neg_integer(), pos_integer()}],
           algorithm: Algorithm.t()
         }
 
@@ -53,7 +57,7 @@ defmodule Yepochs.Preflight do
          :ok <- reject_unsupported(update),
          owned = Update.owned_intervals(update),
          :ok <- check_collisions(owned, bridge, direction, opts),
-         {:ok, resolved} <- resolve_refs(update, bridge, direction) do
+         {:ok, resolved} <- resolve_refs(update, bridge, direction, opts) do
       {:ok,
        %__MODULE__{
          direction: direction,
@@ -61,6 +65,7 @@ defmodule Yepochs.Preflight do
          anchors: resolved.anchors,
          parents: resolved.parents,
          deletes: resolved.deletes,
+         omitted: Enum.sort(resolved.omitted),
          algorithm: Algorithm.translate()
        }}
     end
@@ -147,14 +152,24 @@ defmodule Yepochs.Preflight do
 
   # §15.6, §15.7, §15.8 in one deterministic pass, collecting EVERY failure
   # rather than stopping at the first.
-  defp resolve_refs(update, bridge, direction) do
+  defp resolve_refs(update, bridge, direction, opts) do
+    ctx = omission_context(bridge, direction, opts)
+
     {resolved, failures} =
       update
       |> Update.external_refs()
-      |> Enum.reduce({%{anchors: %{}, parents: %{}, deletes: []}, []}, fn entry, {acc, fails} ->
-        case resolve_entry(entry, bridge, direction) do
-          {:ok, key, value} -> {put_resolved(acc, entry.field, key, value), fails}
-          {:error, failure} -> {acc, [failure | fails]}
+      |> Enum.reduce({%{anchors: %{}, parents: %{}, deletes: [], omitted: []}, []}, fn entry,
+                                                                                       {acc,
+                                                                                        fails} ->
+        case resolve_entry(entry, bridge, direction, ctx) do
+          {:ok, key, value} ->
+            {put_resolved(acc, entry.field, key, value), fails}
+
+          {:ok, :delete, ranges, omitted} ->
+            {%{put_resolved(acc, :delete, nil, ranges) | omitted: acc.omitted ++ omitted}, fails}
+
+          {:error, failure} ->
+            {acc, [failure | fails]}
         end
       end)
 
@@ -174,25 +189,35 @@ defmodule Yepochs.Preflight do
         do: {client, clock, 1}
   end
 
-  defp resolve_entry(%{field: :delete, ref: {client, clock}, length: len}, bridge, direction) do
-    # Range arithmetic, one contiguous run at a time (§15.8).
-    Enum.reduce_while(0..(len - 1), {:ok, nil, []}, fn n, {:ok, _, acc} ->
-      case translate_ref(bridge, direction, {client, clock + n}) do
+  # §15.8 plus ruling 3. Each clock of a delete interval is classified as
+  # translated, checked-historical (omitted), or novel-and-uncovered (a failure),
+  # so a MIXED interval splits into independently handled subranges.
+  defp resolve_entry(%{field: :delete, ref: {client, clock}, length: len}, bridge, direction, ctx) do
+    Enum.reduce_while(0..(len - 1), {:ok, [], []}, fn n, {:ok, mapped, omitted} ->
+      coord = {client, clock + n}
+
+      case translate_ref(bridge, direction, coord) do
         {:ok, dest} ->
-          {:cont, {:ok, nil, [dest | acc]}}
+          {:cont, {:ok, [dest | mapped], omitted}}
 
         :unmapped ->
-          {:halt,
-           {:error, %{field: :delete, code: :missing_operation_target, ref: {client, clock + n}}}}
+          if omissible?(coord, ctx) do
+            {:cont, {:ok, mapped, [coord | omitted]}}
+          else
+            {:halt, {:error, %{field: :delete, code: :missing_operation_target, ref: coord}}}
+          end
       end
     end)
     |> case do
-      {:ok, _, refs} -> {:ok, :delete, coalesce_refs(Enum.reverse(refs))}
-      {:error, _} = error -> error
+      {:ok, mapped, omitted} ->
+        {:ok, :delete, coalesce_refs(Enum.reverse(mapped)), coalesce_refs(Enum.reverse(omitted))}
+
+      {:error, _} = error ->
+        error
     end
   end
 
-  defp resolve_entry(%{field: field, ref: ref}, bridge, direction) do
+  defp resolve_entry(%{field: field, ref: ref}, bridge, direction, _ctx) do
     case translate_ref(bridge, direction, ref) do
       {:ok, dest} -> {:ok, ref, dest}
       :unmapped -> {:error, %{field: field, code: missing_code(field), ref: ref}}
@@ -225,6 +250,73 @@ defmodule Yepochs.Preflight do
 
   # Failures are ordered by {field, ref}; the reported code is the first in that
   # order, and details carries every failure so the caller can see all of them.
+  # ⛔ Ruling 3: omission is permitted ONLY with the exact endpoint states, and
+  # only after three proofs. Without them the context is `nil` and every
+  # uncovered coordinate fails — `translate/4` stays conservative by construction
+  # rather than by remembering to.
+  defp omission_context(bridge, direction, opts) do
+    with %Doc{} = before <- Keyword.get(opts, :source_before),
+         %Doc{} <- Keyword.get(opts, :destination),
+         true <- basis_complete?(bridge, direction, before) do
+      %{before: before}
+    else
+      _ -> nil
+    end
+  end
+
+  # ⚠️ Likewise not independently testable: a fabricated empty `source_before`
+  # authorises nothing, because an empty delete set makes every coordinate
+  # non-historical. The nil clause is the structural guarantee — `translate/4`
+  # never supplies endpoint states, so it can never omit.
+  defp omissible?(_coord, nil), do: false
+
+  defp omissible?({client, clock}, %{before: before}) do
+    # (a) The range was already deleted before this edit. Otherwise omitting it
+    #     would discard a real deletion.
+    #
+    # (b) Bridge completeness over live source content was established when the
+    #     context was built.
+    #
+    # (c) The destination holds no live item requiring this deletion — which
+    #     FOLLOWS from (a) and (b) rather than needing its own lookup: every live
+    #     source clock is mapped, this clock is unmapped, therefore it is not
+    #     live source content, therefore nothing in the destination was
+    #     re-authored from it.
+    #
+    # ⛔ An earlier version checked the destination for a live item at the SAME
+    # RAW COORDINATE. That is wrong and dangerously so: the snapshot mints under
+    # the smallest source client id, so a destination routinely holds live items
+    # at coordinates numerically equal to source tombstones. Comparing them is
+    # raw numeric equality ACROSS EPOCHS — precisely what invariant 1 and
+    # invariant 9 forbid. It made every legitimate omission fail.
+    #
+    # ⚠️ Mutation testing shows this check cannot currently be made to fail, and
+    # that is a PROOF rather than a coverage gap: under (b), every live source
+    # clock is mapped, so a NOVEL delete — which by definition targets content
+    # that was live before the edit — is always covered and never reaches here.
+    # The check is therefore redundant *given* (b) and kept as defence in depth
+    # against (b) being weakened. It is not counted as a tested gate.
+    DeleteSet.deleted?(before.delete_set, client, clock)
+  end
+
+  # (b) Every LIVE clock of the source is covered by the bridge. Only then can an
+  # uncovered-and-dead coordinate be concluded to have never been re-authored
+  # into the destination at all.
+  defp basis_complete?(bridge, direction, %Doc{store: store} = before) do
+    store
+    |> BlockStore.all_items()
+    |> Enum.reject(& &1.deleted)
+    |> Enum.filter(&match?({:named, _}, &1.parent))
+    |> Enum.all?(fn item ->
+      Enum.all?(0..(item.length - 1)//1, fn n ->
+        coord = {item.id.client, item.id.clock + n}
+
+        DeleteSet.deleted?(before.delete_set, elem(coord, 0), elem(coord, 1)) or
+          match?({:ok, _}, translate_ref(bridge, direction, coord))
+      end)
+    end)
+  end
+
   defp failure_error([first | _] = failures) do
     Error.new(first.code, :preflight,
       refs: Enum.map(failures, & &1.ref),

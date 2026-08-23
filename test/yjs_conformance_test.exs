@@ -137,18 +137,12 @@ defmodule Yepochs.YjsConformanceTest do
       end
     end
 
-    test "⛔ an edit over TOMBSTONED foreign state cannot translate strictly — §10.5 x §15.8" do
-      # Not a defect: a documented interaction, surfaced by real foreign data.
-      #
-      # `encode_diff/2` includes the document's ENTIRE delete set (delete sets
-      # are not filtered by a state vector), so an edit authored on a document
-      # that has ever had a deletion carries the PRE-EXISTING tombstone
-      # coordinates. §10.5 explicitly declines to map tombstones, and §15.8
-      # requires every delete-set interval to be translated or fail.
-      #
-      # ⇒ Strict translation is unavailable for such an edit, and the crossing
-      # re-authors instead. Correct per §27.4 — and much narrower in practice
-      # than "strict fast path" suggests.
+    test "⛔ the LOW-LEVEL translate/4 still refuses tombstoned foreign state — ruling 3" do
+      # `translate/4` receives no endpoint states, so it cannot PROVE a historical
+      # range is already satisfied at the destination. Ruling 3 keeps it
+      # conservative in exactly that case: it must fail rather than guess.
+      # `cross/5`, which has the states, omits the checked ranges and stays on
+      # the strict path — asserted in the test below.
       for name <- cases() -- @tombstone_free do
         doc = assemble(name)
         {:ok, s} = Snapshotter.snapshot(doc, [])
@@ -191,11 +185,11 @@ defmodule Yepochs.YjsConformanceTest do
         assert Text.to_string(out, "t") == "Z" <> expected_text(name),
                "#{name}: crossing an edit over foreign state gave the wrong result (#{c.mode})"
 
-        expected_mode = if name in @tombstone_free, do: :translated, else: :reauthored
-
-        assert c.mode == expected_mode,
-               "#{name}: expected #{expected_mode}, got #{c.mode} — if this changed, the " <>
-                 "§10.5/§15.8 tombstone interaction changed with it"
+        # ⭐ Ruling 3: EVERY case now takes the strict path. Before checked
+        # omission the three cases carrying pre-existing tombstones re-authored,
+        # which is what the ruling was issued to fix.
+        assert c.mode == :translated,
+               "#{name}: expected :translated under checked omission, got #{c.mode}"
       end
     end
   end
