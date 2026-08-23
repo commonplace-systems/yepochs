@@ -1,0 +1,7 @@
+{
+  "name": "yepochs-conformance",
+  "private": true,
+  "type": "module",
+  "description": "Upstream Yjs as an independent oracle for yepochs. Dev-only; never a runtime dependency.",
+  "dependencies": { "yjs": "13.6.32" }
+}

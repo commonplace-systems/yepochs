@@ -20,8 +20,9 @@ extraction** of commonplace's epoch handling into its own package.
 | explicit algorithm-version selection | §21 | ✅ refuses substitution in either direction |
 
 **318 tests and 12 properties** — including §28.4 conformance vectors authored by **upstream
-`yjs` 13.6.32**, not by this stack. ⚠️ Those five vectors establish **text and delete
-interoperability only** and are not evidence for maps, arrays or XML (ruling 8.1). `mix check` runs the lot: formatting, `--warnings-as-errors`,
+`yjs` 13.6.32**, not by this stack. Ten vectors: five text/delete, and five
+`Y.Map`/`Y.Array` generated for ruling 8.1. ⚠️ **No XML vectors and no XML claim** — element children
+cannot survive the snapshot replay, so such documents can hold no bridge. `mix check` runs the lot: formatting, `--warnings-as-errors`,
 the suite, and **Dialyzer under strict flags** (`error_handling`, `extra_return`, `missing_return`,
 `unmatched_returns`) — currently 0 errors. Every load-bearing check is
 **mutation-tested** — disabled one at a time to confirm the suite reddens. That practice found

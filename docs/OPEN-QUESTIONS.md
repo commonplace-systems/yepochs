@@ -251,8 +251,10 @@ guard"* and confirms *"silent loss of XML children is never acceptable."*
 
 - **Cross-language vectors:** the five upstream text vectors establish **text/delete
   interoperability only** and *"MUST NOT be presented as evidence for maps, arrays, or XML."* One
-  upstream-authored crossing vector per claimed type is required before 0.1 claims more. ⚠️ **Not
-  yet added — this is the one outstanding item of work in this document.**
+  upstream-authored crossing vector per claimed type is required before 0.1 claims more.
+  ✅ **Done:** cases 006–010 (three `Y.Map`, two `Y.Array`) generated against upstream `yjs`
+  13.6.32 by `conformance/map_array_corpus.mjs`. ⚠️ **No XML vectors and no XML claim** — element
+  children cannot survive the snapshot replay, so such documents can hold no bridge.
 - **Inversion guard:** every inversion API MUST validate the partial bijection first; a map-key
   collision MUST return `:invalid_derivation` and **must not silently discard a correspondence**.
   Already true here; now asserted directly in `test/invariants_test.exs`.
@@ -269,9 +271,10 @@ guard"* and confirms *"silent loss of XML children is never acceptable."*
 
 1. **The specification revision itself.** §9 of the rulings lists **ten required spec edits**; this
    repo tracks them but does not own the spec.
-2. **Cross-language vectors for maps and arrays** (ruling 8.1), before 0.1 claims interoperability
-   beyond text and deletes. The current claim has been narrowed to what the vectors actually show.
-3. **The `commonplace-plan` integration milestone** (ruling 5) — not this repo's to satisfy.
+2. **The `commonplace-plan` integration milestone** (ruling 5) — not this repo's to satisfy.
+
+⇒ **Neither is actionable from this repo.** Generating cross-language vectors *was*, and is done:
+Node and upstream `yjs` are available here, which I initially and wrongly assumed they were not.
 
 ## What I explicitly did *not* do
 

@@ -11,3 +11,4 @@ yepochs-*.tar
 /priv/plts/*.plt
 /priv/plts/*.plt.hash
 /cover/
+/conformance/node_modules/
