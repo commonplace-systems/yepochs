@@ -5,7 +5,12 @@ extraction** of commonplace's epoch handling into its own package.
 
 ## Status
 
-**Repo created 2026-08-23 at jes's request. Nothing extracted yet.**
+**Repo created 2026-08-23 at jes's request. Spec filed the same day. Nothing extracted yet.**
+
+Per the spec, `yepochs` is **Commonplace-independent**: a small Elixir library on the Yelixer
+substrate for moving Yjs changes between histories that represent compatible content under
+**different internal Yjs identities** — Yepochs, deterministic snapshots, derivations, bridges,
+strict translation, and positional rebase as an explicit fallback.
 
 Until this repo has content, `yepochs` was **absent**: the log-reducer and merkle-crdt briefs both
 record it as "not a repo, a planned extraction". That is no longer true of the *repo*; it is still
@@ -36,7 +41,24 @@ commonplace-plan's queue carries two findings that bound when this extraction ca
 **commonplace-plan's call** — it owns ranking across the commonplace family via
 `commonplace-plan/docs/plans/QUEUE.md`. This repo existing does not re-rank it.
 
-### ⛔ RULED 2026-08-23 by commonplace-plan: NO AGENT, NO START
+### ✅ SUPERSEDED 2026-08-23 04:28Z — jes supplied a spec and staffed it
+
+jes: *"I'll try to get you a yepochs spec so we can have an opus there too."* He then sent one.
+⇒ The spec is filed byte-identical at
+[`docs/proposals/2026-08-22-yepochs-spec.md`](docs/proposals/2026-08-22-yepochs-spec.md)
+(sha256 `c24ce9ddb9919fdf6846737f0ee2425320bc71d89a932211e09029958d055e34`) and an Opus worker runs
+here.
+
+⚠️ **The ruling below is NOT deleted, because its REASONING still binds** — what changed is the
+premise, not the argument. plan ruled against staffing *an empty repo with no spec*; the repo is no
+longer empty and the direction is no longer absent. ⛔ **The §5 sequencing gate is untouched and
+still applies to the EXTRACTION itself** (see above): a yepochs consuming published yelixer repeats
+the whole gate structure, and not mid-arc.
+
+⇒ **Spec work and library design can proceed. Landing an extraction that displaces `commonplace`'s
+`translator.ex` / `cross_epoch_merge.ex` is still plan's to sequence.**
+
+### ⛔ RULED 2026-08-23 04:0xZ by commonplace-plan: NO AGENT, NO START (premise now superseded)
 
 Asked directly whether to staff this repo, plan ruled no, and gave the reason in a form worth
 keeping at the top of the file someone opens when they are about to start:
