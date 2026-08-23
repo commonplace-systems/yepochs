@@ -1,41 +1,39 @@
 defmodule Yepochs.DerivationPropertyTest do
-  @moduledoc """
-  Spec §28.3 — algebraic property tests over generated valid span sets.
-  """
+  @moduledoc "Spec r2 §28.3 — algebraic properties over generated valid span sets."
   use ExUnit.Case, async: true
   use ExUnitProperties
 
   alias Yepochs.Algorithm
   alias Yepochs.Bridge
+  alias Yepochs.Bridge.Delta
+  alias Yepochs.Crossing.Receipt
   alias Yepochs.Derivation
   alias Yepochs.Span
 
   # Clocks advance monotonically across the whole list and are never reused, so
   # the result is a partial bijection by construction regardless of which client
-  # each span lands on. Ranges are kept small so that independently generated
-  # bridges actually overlap often enough to exercise composition.
+  # each span lands on. Ranges stay small so independently generated bridges
+  # overlap often enough to actually exercise composition.
   defp span_list do
     gen all steps <-
               list_of(
-                tuple({integer(0..3), integer(0..3), integer(1..4), integer(1..3),
-                       integer(1..3)}),
+                tuple({integer(0..3), integer(0..3), integer(1..4), integer(1..3), integer(1..3)}),
                 max_length: 6
               ) do
       {spans, _, _} =
-        Enum.reduce(steps, {[], 0, 0}, fn {tgap, sgap, len, tclient, sclient},
-                                          {acc, tclock, sclock} ->
-          t = tclock + tgap
-          s = sclock + sgap
+        Enum.reduce(steps, {[], 0, 0}, fn {lgap, rgap, len, lclient, rclient}, {acc, lc, rc} ->
+          l = lc + lgap
+          r = rc + rgap
 
           span = %Span{
-            target_client: tclient,
-            target_clock: t,
-            source_client: sclient,
-            source_clock: s,
+            left_client: lclient,
+            left_clock: l,
+            right_client: rclient,
+            right_clock: r,
             length: len
           }
 
-          {[span | acc], t + len, s + len}
+          {[span | acc], l + len, r + len}
         end)
 
       Enum.reverse(spans)
@@ -49,16 +47,16 @@ defmodule Yepochs.DerivationPropertyTest do
     end
   end
 
-  defp bridge(source_epoch, target_epoch) do
+  defp bridge(left, right) do
     gen all d <- derivation() do
-      {:ok, b} = Bridge.attach(d, source_epoch, target_epoch, Algorithm.snapshot())
+      {:ok, b} = Bridge.attach(d, left, right, Algorithm.snapshot())
       b
     end
   end
 
-  defp mapped_source_refs(%Bridge{} = b) do
-    Enum.flat_map(b.derivation.spans, fn s ->
-      for n <- 0..(s.length - 1), do: {s.source_client, s.source_clock + n}
+  defp left_refs(%Bridge{} = b) do
+    Enum.flat_map(b.correspondence.spans, fn s ->
+      for n <- 0..(s.length - 1), do: {s.left_client, s.left_clock + n}
     end)
   end
 
@@ -86,15 +84,17 @@ defmodule Yepochs.DerivationPropertyTest do
     end
   end
 
-  property "normalized inversion preserves one-to-one lookup" do
+  property "reorienting swaps presentation, not capability (invariant 6)" do
     check all b <- bridge("A", "B") do
-      {:ok, inverted} = Bridge.invert(b)
+      {:ok, flipped} = Bridge.invert(b)
 
-      for ref <- mapped_source_refs(b) do
-        {:ok, target} = Bridge.target_ref(b, ref)
-        # The inverse bridge walks the same correspondence the other way.
-        assert Bridge.source_ref(inverted, ref) == {:ok, target}
-        assert Bridge.target_ref(inverted, target) == {:ok, ref}
+      for ref <- left_refs(b) do
+        {:ok, right} = Bridge.right_ref(b, ref)
+        # Every correspondence readable one way is readable the other way.
+        assert Bridge.left_ref(b, right) == {:ok, ref}
+        # And the reoriented bridge answers the same pairs with the roles swapped.
+        assert Bridge.left_ref(flipped, ref) == {:ok, right}
+        assert Bridge.right_ref(flipped, right) == {:ok, ref}
       end
     end
   end
@@ -103,34 +103,48 @@ defmodule Yepochs.DerivationPropertyTest do
     check all ab <- bridge("A", "B"), bc <- bridge("B", "C") do
       {:ok, ac} = Bridge.compose([ab, bc])
 
-      for ref <- mapped_source_refs(ab) do
+      for ref <- left_refs(ab) do
         expected =
-          case Bridge.target_ref(ab, ref) do
-            {:ok, b_ref} -> Bridge.target_ref(bc, b_ref)
+          case Bridge.right_ref(ab, ref) do
+            {:ok, mid} -> Bridge.right_ref(bc, mid)
             :unmapped -> :unmapped
           end
 
-        assert Bridge.target_ref(ac, ref) == expected
+        assert Bridge.right_ref(ac, ref) == expected
       end
     end
   end
 
   property "composition is associative after normalization" do
     check all ab <- bridge("A", "B"), bc <- bridge("B", "C"), cd <- bridge("C", "D") do
-      {:ok, left_inner} = Bridge.compose([ab, bc])
-      {:ok, left} = Bridge.compose([left_inner, cd])
-      {:ok, right_inner} = Bridge.compose([bc, cd])
-      {:ok, right} = Bridge.compose([ab, right_inner])
+      {:ok, li} = Bridge.compose([ab, bc])
+      {:ok, left} = Bridge.compose([li, cd])
+      {:ok, ri} = Bridge.compose([bc, cd])
+      {:ok, right} = Bridge.compose([ab, ri])
 
-      assert left.derivation == right.derivation
-      assert left.source_epoch == right.source_epoch and left.target_epoch == right.target_epoch
+      assert left.correspondence == right.correspondence
+      assert left.left_epoch == right.left_epoch and left.right_epoch == right.right_epoch
     end
   end
 
-  property "exact duplicate extension is idempotent" do
+  property "exact duplicate extension is idempotent in both correspondence and receipts" do
     check all b <- bridge("A", "B") do
-      {:ok, extended} = Bridge.extend(b, b.derivation)
-      assert extended.derivation == b.derivation
+      r = %Receipt{
+        ref: "dup",
+        from: :left,
+        to: :right,
+        mode: :translated,
+        outcome: :applied,
+        algorithm: Algorithm.cross()
+      }
+
+      d = %Delta{correspondence: b.correspondence, receipt: r}
+      {:ok, once} = Bridge.extend(b, d)
+      {:ok, twice} = Bridge.extend(once, d)
+
+      assert once.correspondence == b.correspondence
+      assert twice.correspondence == once.correspondence
+      assert length(twice.receipts) == 1
     end
   end
 
@@ -138,10 +152,10 @@ defmodule Yepochs.DerivationPropertyTest do
     check all ab <- bridge("A", "B"), bc <- bridge("B", "C") do
       {:ok, ac} = Bridge.compose([ab, bc])
 
-      for span <- ac.derivation.spans, n <- 0..(span.length - 1) do
-        ref = {span.source_client, span.source_clock + n}
-        assert {:ok, b_ref} = Bridge.target_ref(ab, ref)
-        assert {:ok, _} = Bridge.target_ref(bc, b_ref)
+      for span <- ac.correspondence.spans, n <- 0..(span.length - 1) do
+        ref = {span.left_client, span.left_clock + n}
+        assert {:ok, mid} = Bridge.right_ref(ab, ref)
+        assert {:ok, _} = Bridge.right_ref(bc, mid)
       end
     end
   end

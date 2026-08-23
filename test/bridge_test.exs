@@ -3,13 +3,16 @@ defmodule Yepochs.BridgeTest do
 
   alias Yepochs.Algorithm
   alias Yepochs.Bridge
+  alias Yepochs.Bridge.Basis
+  alias Yepochs.Bridge.Delta
+  alias Yepochs.Crossing.Receipt
   alias Yepochs.Derivation
   alias Yepochs.Error
   alias Yepochs.Span
 
-  defp span(tc, tk, sc, sk, len) do
+  defp span(lc, lk, rc, rk, len) do
     {:ok, s} =
-      Span.new(target_client: tc, target_clock: tk, source_client: sc, source_clock: sk, length: len)
+      Span.new(left_client: lc, left_clock: lk, right_client: rc, right_clock: rk, length: len)
 
     s
   end
@@ -19,98 +22,129 @@ defmodule Yepochs.BridgeTest do
     d
   end
 
-  defp snapshotter, do: %Algorithm{id: "yepochs.snapshot", version: 2}
-
-  defp bridge(src, tgt, spans) do
-    {:ok, b} = Bridge.attach(deriv(spans), src, tgt, snapshotter())
+  defp bridge(origin, derived, spans) do
+    {:ok, b} = Bridge.attach(deriv(spans), origin, derived, Algorithm.snapshot())
     b
   end
 
-  describe "attach/4" do
-    test "builds a bridge from a derivation and two epoch references" do
-      assert {:ok, %Bridge{} = b} =
-               Bridge.attach(deriv([span(17, 4, 9, 21, 5)]), "epoch-a", "epoch-b", snapshotter())
+  defp receipt(ref, opts \\ []) do
+    %Receipt{
+      ref: ref,
+      from: Keyword.get(opts, :from, :left),
+      to: Keyword.get(opts, :to, :right),
+      mode: Keyword.get(opts, :mode, :translated),
+      outcome: Keyword.get(opts, :outcome, :applied),
+      algorithm: Algorithm.cross()
+    }
+  end
 
-      assert b.source_epoch == "epoch-a"
-      assert b.target_epoch == "epoch-b"
-      assert b.producer == snapshotter()
+  defp delta(spans, %Receipt{} = r), do: %Delta{correspondence: deriv(spans), receipt: r}
+
+  describe "attach/4" do
+    test "assigns the ORIGIN to left and the DERIVED Yepoch to right" do
+      assert {:ok, %Bridge{} = b} =
+               Bridge.attach(deriv([span(9, 21, 17, 4, 5)]), "origin-epoch", "derived-epoch",
+                 Algorithm.snapshot())
+
+      assert b.left_epoch == "origin-epoch"
+      assert b.right_epoch == "derived-epoch"
       assert b.format_version == 1
     end
 
-    test "normalizes the derivation while attaching, and changes no span content" do
-      spans = [span(1, 5, 2, 105, 3), span(1, 0, 2, 100, 5)]
-      {:ok, b} = Bridge.attach(deriv(spans), "a", "b", snapshotter())
-      assert [%Span{target_clock: 0, source_clock: 100, length: 8}] = b.derivation.spans
+    test "records the directed snapshot fact in basis, on opposite sides" do
+      b = bridge("a", "b", [])
+      assert %Basis{kind: :snapshot, origin: :left, derived: :right} = b.basis
+      assert b.basis.producer == Algorithm.snapshot()
+    end
+
+    test "starts with no receipts" do
+      assert bridge("a", "b", []).receipts == []
+    end
+
+    test "normalizes the correspondence while attaching, and changes no span content" do
+      b = bridge("a", "b", [span(2, 105, 1, 5, 3), span(2, 100, 1, 0, 5)])
+      assert [%Span{left_clock: 100, right_clock: 0, length: 8}] = b.correspondence.spans
     end
 
     test "rejects an empty epoch reference" do
       assert {:error, %Error{code: :invalid_epoch_ref}} =
-               Bridge.attach(deriv([]), "", "b", snapshotter())
+               Bridge.attach(deriv([]), "", "b", Algorithm.snapshot())
     end
 
     test "rejects an epoch reference longer than 1024 UTF-8 bytes" do
-      long = String.duplicate("x", 1025)
-
       assert {:error, %Error{code: :invalid_epoch_ref}} =
-               Bridge.attach(deriv([]), "a", long, snapshotter())
+               Bridge.attach(deriv([]), "a", String.duplicate("x", 1025), Algorithm.snapshot())
 
-      assert {:ok, _} = Bridge.attach(deriv([]), "a", String.duplicate("x", 1024), snapshotter())
+      assert {:ok, _} =
+               Bridge.attach(deriv([]), "a", String.duplicate("x", 1024), Algorithm.snapshot())
     end
 
     test "measures the 1024 limit in BYTES, not characters" do
-      # 512 three-byte characters is 1536 bytes.
       assert {:error, %Error{code: :invalid_epoch_ref}} =
-               Bridge.attach(deriv([]), "a", String.duplicate("あ", 512), snapshotter())
+               Bridge.attach(deriv([]), "a", String.duplicate("あ", 512), Algorithm.snapshot())
     end
 
     test "rejects equal endpoints" do
       assert {:error, %Error{code: :invalid_epoch_ref}} =
-               Bridge.attach(deriv([]), "same", "same", snapshotter())
+               Bridge.attach(deriv([]), "same", "same", Algorithm.snapshot())
     end
   end
 
   describe "lookup" do
-    # Stored provenance direction is target -> source.
     setup do
-      %{b: bridge("src-epoch", "tgt-epoch", [span(17, 4, 9, 21, 5)])}
+      %{b: bridge("origin", "derived", [span(9, 21, 17, 4, 5)])}
     end
 
-    test "source_ref/2 walks the stored direction, target -> source", %{b: b} do
-      assert Bridge.source_ref(b, {17, 4}) == {:ok, {9, 21}}
+    test "right_ref/2 takes a LEFT coordinate and returns its right counterpart", %{b: b} do
+      assert Bridge.right_ref(b, {9, 21}) == {:ok, {17, 4}}
     end
 
-    test "target_ref/2 walks the translation direction, source -> target", %{b: b} do
-      assert Bridge.target_ref(b, {9, 21}) == {:ok, {17, 4}}
+    test "left_ref/2 takes a RIGHT coordinate and returns its left counterpart", %{b: b} do
+      assert Bridge.left_ref(b, {17, 4}) == {:ok, {9, 21}}
     end
 
     test "resolves a reference into the MIDDLE of a multi-clock item", %{b: b} do
-      assert Bridge.source_ref(b, {17, 6}) == {:ok, {9, 23}}
-      assert Bridge.target_ref(b, {9, 23}) == {:ok, {17, 6}}
+      assert Bridge.right_ref(b, {9, 23}) == {:ok, {17, 6}}
+      assert Bridge.left_ref(b, {17, 6}) == {:ok, {9, 23}}
     end
 
     test "resolves the last clock of a span but not the exclusive end", %{b: b} do
-      assert Bridge.source_ref(b, {17, 8}) == {:ok, {9, 25}}
-      assert Bridge.source_ref(b, {17, 9}) == :unmapped
+      assert Bridge.right_ref(b, {9, 25}) == {:ok, {17, 8}}
+      assert Bridge.right_ref(b, {9, 26}) == :unmapped
     end
 
     test "returns :unmapped rather than falling back to the same numeric coordinate", %{b: b} do
-      assert Bridge.source_ref(b, {17, 999}) == :unmapped
-      assert Bridge.source_ref(b, {999, 4}) == :unmapped
-      assert Bridge.target_ref(b, {17, 4}) == :unmapped
+      assert Bridge.right_ref(b, {9, 999}) == :unmapped
+      assert Bridge.right_ref(b, {999, 21}) == :unmapped
+      # A right-side coordinate is not a left-side one, even though both exist.
+      assert Bridge.right_ref(b, {17, 4}) == :unmapped
     end
   end
 
   describe "invert/1" do
-    test "swaps the endpoint references and every span coordinate" do
-      b = bridge("a", "b", [span(17, 4, 9, 21, 5)])
+    test "exchanges endpoint references and every span coordinate" do
+      b = bridge("a", "b", [span(9, 21, 17, 4, 5)])
       assert {:ok, i} = Bridge.invert(b)
-      assert i.source_epoch == "b"
-      assert i.target_epoch == "a"
-      assert Bridge.source_ref(i, {9, 21}) == {:ok, {17, 4}}
+      assert i.left_epoch == "b"
+      assert i.right_epoch == "a"
+      assert Bridge.right_ref(i, {17, 4}) == {:ok, {9, 21}}
     end
 
-    test "invert(invert(b)) == normalize(b)" do
-      b = bridge("a", "b", [span(9, 50, 1, 50, 2), span(2, 0, 1, 0, 2), span(2, 2, 1, 2, 3)])
+    test "exchanges the basis ROLES, so provenance survives reorientation" do
+      b = bridge("a", "b", [span(9, 21, 17, 4, 5)])
+      {:ok, i} = Bridge.invert(b)
+      assert %Basis{kind: :snapshot, origin: :right, derived: :left} = i.basis
+    end
+
+    test "exchanges from/to in every receipt" do
+      b = bridge("a", "b", [span(1, 0, 2, 0, 4)])
+      {:ok, b} = Bridge.extend(b, delta([], receipt("r1", from: :left, to: :right)))
+      {:ok, i} = Bridge.invert(b)
+      assert [%Receipt{ref: "r1", from: :right, to: :left}] = i.receipts
+    end
+
+    test "invert(invert(b)) == normalize(b) — it is presentation, not a new relationship" do
+      b = bridge("a", "b", [span(1, 50, 9, 50, 2), span(1, 0, 2, 0, 2), span(1, 2, 2, 2, 3)])
       {:ok, i} = Bridge.invert(b)
       {:ok, ii} = Bridge.invert(i)
       assert ii == b
@@ -122,198 +156,242 @@ defmodule Yepochs.BridgeTest do
       assert {:error, %Error{}} = Bridge.compose([])
     end
 
-    test "a single bridge composes to itself, with its own producer preserved" do
-      b = bridge("a", "b", [span(17, 4, 9, 21, 5)])
+    test "a single bridge composes to itself" do
+      b = bridge("a", "b", [span(9, 21, 17, 4, 5)])
       assert {:ok, ^b} = Bridge.compose([b])
     end
 
-    test "composes A->B->C into A->C, chaining provenance C -> B -> A" do
-      ab = bridge("A", "B", [span(20, 0, 10, 0, 5)])
-      bc = bridge("B", "C", [span(30, 0, 20, 0, 5)])
+    test "composes A<->B<->C into A<->C through the shared endpoint" do
+      ab = bridge("A", "B", [span(10, 0, 20, 0, 5)])
+      bc = bridge("B", "C", [span(20, 0, 30, 0, 5)])
       assert {:ok, ac} = Bridge.compose([ab, bc])
-      assert ac.source_epoch == "A"
-      assert ac.target_epoch == "C"
-      assert Bridge.target_ref(ac, {10, 2}) == {:ok, {30, 2}}
-      assert Bridge.source_ref(ac, {30, 2}) == {:ok, {10, 2}}
+      assert ac.left_epoch == "A"
+      assert ac.right_epoch == "C"
+      assert Bridge.right_ref(ac, {10, 2}) == {:ok, {30, 2}}
+      assert Bridge.left_ref(ac, {30, 2}) == {:ok, {10, 2}}
     end
 
     test "lookup across a composed bridge equals successive lookup across its inputs" do
-      ab = bridge("A", "B", [span(20, 100, 10, 0, 8)])
-      bc = bridge("B", "C", [span(30, 7, 20, 103, 4)])
+      ab = bridge("A", "B", [span(10, 0, 20, 100, 8)])
+      bc = bridge("B", "C", [span(20, 103, 30, 7, 4)])
       {:ok, ac} = Bridge.compose([ab, bc])
 
-      for source_clock <- 3..6 do
-        {:ok, b_ref} = Bridge.target_ref(ab, {10, source_clock})
-        {:ok, c_ref} = Bridge.target_ref(bc, b_ref)
-        assert Bridge.target_ref(ac, {10, source_clock}) == {:ok, c_ref}
+      for clock <- 3..6 do
+        {:ok, b_ref} = Bridge.right_ref(ab, {10, clock})
+        {:ok, c_ref} = Bridge.right_ref(bc, b_ref)
+        assert Bridge.right_ref(ac, {10, clock}) == {:ok, c_ref}
       end
     end
 
     test "splits at intermediate boundaries and keeps only fully-mapped coordinates" do
-      ab = bridge("A", "B", [span(20, 0, 10, 0, 10)])
-      # Only B clocks 3..6 continue on to C.
-      bc = bridge("B", "C", [span(30, 0, 20, 3, 4)])
+      ab = bridge("A", "B", [span(10, 0, 20, 0, 10)])
+      bc = bridge("B", "C", [span(20, 3, 30, 0, 4)])
       {:ok, ac} = Bridge.compose([ab, bc])
 
-      assert Bridge.target_ref(ac, {10, 2}) == :unmapped
-      assert Bridge.target_ref(ac, {10, 3}) == {:ok, {30, 0}}
-      assert Bridge.target_ref(ac, {10, 6}) == {:ok, {30, 3}}
-      assert Bridge.target_ref(ac, {10, 7}) == :unmapped
+      assert Bridge.right_ref(ac, {10, 2}) == :unmapped
+      assert Bridge.right_ref(ac, {10, 3}) == {:ok, {30, 0}}
+      assert Bridge.right_ref(ac, {10, 6}) == {:ok, {30, 3}}
+      assert Bridge.right_ref(ac, {10, 7}) == :unmapped
     end
 
-    test "re-offsets INTO the second bridge when the clip cuts its source start" do
-      # ab covers B clocks 5..15; bc covers B clocks 0..10. The shared range
-      # starts at 5, which is 5 clocks into bc's source interval -- so the
-      # composed target clock must advance by 5, not stay at bc's start.
-      ab = bridge("A", "B", [span(20, 5, 10, 0, 10)])
-      bc = bridge("B", "C", [span(30, 0, 20, 0, 10)])
+    test "re-offsets INTO the second bridge when the clip cuts its left start" do
+      ab = bridge("A", "B", [span(10, 0, 20, 5, 10)])
+      bc = bridge("B", "C", [span(20, 0, 30, 0, 10)])
       {:ok, ac} = Bridge.compose([ab, bc])
-
-      assert Bridge.target_ref(ac, {10, 0}) == {:ok, {30, 5}}
-      assert Bridge.target_ref(ac, {10, 4}) == {:ok, {30, 9}}
-      assert Bridge.target_ref(ac, {10, 5}) == :unmapped
+      assert Bridge.right_ref(ac, {10, 0}) == {:ok, {30, 5}}
+      assert Bridge.right_ref(ac, {10, 4}) == {:ok, {30, 9}}
+      assert Bridge.right_ref(ac, {10, 5}) == :unmapped
     end
 
-    test "re-offsets INTO the first bridge when the clip cuts its target start" do
-      ab = bridge("A", "B", [span(20, 0, 10, 0, 10)])
-      bc = bridge("B", "C", [span(30, 0, 20, 4, 6)])
+    test "re-offsets INTO the first bridge when the clip cuts its right start" do
+      ab = bridge("A", "B", [span(10, 0, 20, 0, 10)])
+      bc = bridge("B", "C", [span(20, 4, 30, 0, 6)])
       {:ok, ac} = Bridge.compose([ab, bc])
-
-      assert Bridge.target_ref(ac, {10, 4}) == {:ok, {30, 0}}
-      assert Bridge.target_ref(ac, {10, 3}) == :unmapped
+      assert Bridge.right_ref(ac, {10, 4}) == {:ok, {30, 0}}
+      assert Bridge.right_ref(ac, {10, 3}) == :unmapped
     end
 
-    test "composition never invents coverage that neither input had" do
-      ab = bridge("A", "B", [span(20, 0, 10, 0, 3)])
-      bc = bridge("B", "C", [span(30, 0, 20, 50, 3)])
+    test "never invents coverage that neither input had" do
+      ab = bridge("A", "B", [span(10, 0, 20, 0, 3)])
+      bc = bridge("B", "C", [span(20, 50, 30, 0, 3)])
       {:ok, ac} = Bridge.compose([ab, bc])
-      assert ac.derivation.spans == []
+      assert ac.correspondence.spans == []
     end
 
     test "rejects a disconnected path" do
-      ab = bridge("A", "B", [span(20, 0, 10, 0, 5)])
-      cd = bridge("C", "D", [span(40, 0, 30, 0, 5)])
+      ab = bridge("A", "B", [span(10, 0, 20, 0, 5)])
+      cd = bridge("C", "D", [span(30, 0, 40, 0, 5)])
       assert {:error, %Error{code: :bridge_endpoint_mismatch}} = Bridge.compose([ab, cd])
     end
 
     test "rejects bridges supplied in the wrong order" do
-      ab = bridge("A", "B", [span(20, 0, 10, 0, 5)])
-      bc = bridge("B", "C", [span(30, 0, 20, 0, 5)])
+      ab = bridge("A", "B", [span(10, 0, 20, 0, 5)])
+      bc = bridge("B", "C", [span(20, 0, 30, 0, 5)])
       assert {:error, %Error{code: :bridge_endpoint_mismatch}} = Bridge.compose([bc, ab])
     end
 
-    test "uses an explicit composition producer rather than pretending a snapshotter made it" do
-      ab = bridge("A", "B", [span(20, 0, 10, 0, 5)])
-      bc = bridge("B", "C", [span(30, 0, 20, 0, 5)])
+    test "uses a COMPOSITION basis with null roles, claiming no direct derivation" do
+      ab = bridge("A", "B", [span(10, 0, 20, 0, 5)])
+      bc = bridge("B", "C", [span(20, 0, 30, 0, 5)])
       {:ok, ac} = Bridge.compose([ab, bc])
-      assert ac.producer == %Algorithm{id: "yepochs.compose", version: 1}
+      assert %Basis{kind: :composition, origin: nil, derived: nil} = ac.basis
+      assert ac.basis.producer == Algorithm.compose()
+    end
+
+    test "leaves edge-specific receipts on their original bridges" do
+      ab = bridge("A", "B", [span(10, 0, 20, 0, 5)])
+      {:ok, ab} = Bridge.extend(ab, delta([], receipt("edge-receipt")))
+      bc = bridge("B", "C", [span(20, 0, 30, 0, 5)])
+      {:ok, ac} = Bridge.compose([ab, bc])
+
+      assert ac.receipts == []
+      assert [%Receipt{ref: "edge-receipt"}] = ab.receipts
     end
 
     test "is associative after normalization" do
-      ab = bridge("A", "B", [span(20, 0, 10, 0, 10)])
-      bc = bridge("B", "C", [span(30, 5, 20, 2, 6)])
-      cd = bridge("C", "D", [span(40, 0, 30, 7, 3)])
+      ab = bridge("A", "B", [span(10, 0, 20, 0, 10)])
+      bc = bridge("B", "C", [span(20, 2, 30, 5, 6)])
+      cd = bridge("C", "D", [span(30, 7, 40, 0, 3)])
 
-      {:ok, left_inner} = Bridge.compose([ab, bc])
-      {:ok, left} = Bridge.compose([left_inner, cd])
-      {:ok, right_inner} = Bridge.compose([bc, cd])
-      {:ok, right} = Bridge.compose([ab, right_inner])
+      {:ok, li} = Bridge.compose([ab, bc])
+      {:ok, left} = Bridge.compose([li, cd])
+      {:ok, ri} = Bridge.compose([bc, cd])
+      {:ok, right} = Bridge.compose([ab, ri])
 
-      assert left.derivation == right.derivation
-      assert left.source_epoch == right.source_epoch
-      assert left.target_epoch == right.target_epoch
+      assert left.correspondence == right.correspondence
+      assert left.left_epoch == right.left_epoch and left.right_epoch == right.right_epoch
     end
 
     test "composes a three-bridge path" do
-      ab = bridge("A", "B", [span(20, 0, 10, 0, 10)])
-      bc = bridge("B", "C", [span(30, 0, 20, 0, 10)])
-      cd = bridge("C", "D", [span(40, 0, 30, 0, 10)])
+      ab = bridge("A", "B", [span(10, 0, 20, 0, 10)])
+      bc = bridge("B", "C", [span(20, 0, 30, 0, 10)])
+      cd = bridge("C", "D", [span(30, 0, 40, 0, 10)])
       assert {:ok, ad} = Bridge.compose([ab, bc, cd])
-      assert ad.source_epoch == "A"
-      assert ad.target_epoch == "D"
-      assert Bridge.target_ref(ad, {10, 4}) == {:ok, {40, 4}}
+      assert ad.left_epoch == "A" and ad.right_epoch == "D"
+      assert Bridge.right_ref(ad, {10, 4}) == {:ok, {40, 4}}
     end
   end
 
   describe "extend/2" do
     setup do
-      %{b: bridge("A", "B", [span(20, 0, 10, 0, 5)])}
+      %{b: bridge("A", "B", [span(10, 0, 20, 0, 5)])}
     end
 
     test "preserves the bridge endpoints", %{b: b} do
-      {:ok, e} = Bridge.extend(b, deriv([span(21, 0, 11, 0, 3)]))
-      assert e.source_epoch == "A"
-      assert e.target_epoch == "B"
+      {:ok, e} = Bridge.extend(b, delta([span(11, 0, 21, 0, 3)], receipt("r1")))
+      assert e.left_epoch == "A" and e.right_epoch == "B"
     end
 
-    test "adds the new mapping", %{b: b} do
-      {:ok, e} = Bridge.extend(b, deriv([span(21, 0, 11, 0, 3)]))
-      assert Bridge.target_ref(e, {11, 1}) == {:ok, {21, 1}}
-      assert Bridge.target_ref(e, {10, 1}) == {:ok, {20, 1}}
+    test "adds the new correspondence and retains the earlier one unchanged", %{b: b} do
+      {:ok, e} = Bridge.extend(b, delta([span(11, 0, 21, 0, 3)], receipt("r1")))
+      assert Bridge.right_ref(e, {11, 1}) == {:ok, {21, 1}}
+      assert Bridge.right_ref(e, {10, 1}) == {:ok, {20, 1}}
+    end
+
+    test "records the receipt", %{b: b} do
+      {:ok, e} = Bridge.extend(b, delta([], receipt("r1")))
+      assert [%Receipt{ref: "r1", mode: :translated}] = e.receipts
+    end
+
+    test "an ABSORBED edit still records its receipt though its correspondence is empty", %{b: b} do
+      {:ok, e} = Bridge.extend(b, delta([], receipt("r-abs", mode: :absorbed, outcome: :absorbed)))
+      assert [%Receipt{ref: "r-abs", outcome: :absorbed}] = e.receipts
+      assert e.correspondence == b.correspondence
+    end
+
+    test "a delta may originate from EITHER endpoint", %{b: b} do
+      {:ok, e} = Bridge.extend(b, delta([], receipt("r-rl", from: :right, to: :left)))
+      assert [%Receipt{from: :right, to: :left}] = e.receipts
     end
 
     test "accepts an exact duplicate mapping idempotently", %{b: b} do
-      {:ok, e} = Bridge.extend(b, deriv([span(20, 0, 10, 0, 5)]))
-      assert e.derivation == b.derivation
+      {:ok, e} = Bridge.extend(b, delta([span(10, 0, 20, 0, 5)], receipt("r1")))
+      assert e.correspondence == b.correspondence
     end
 
-    test "duplicate extension applied twice is still idempotent", %{b: b} do
-      add = deriv([span(21, 0, 11, 0, 3)])
-      {:ok, once} = Bridge.extend(b, add)
-      {:ok, twice} = Bridge.extend(once, add)
-      assert once.derivation == twice.derivation
+    test "accepts an exact duplicate RECEIPT idempotently", %{b: b} do
+      d = delta([span(11, 0, 21, 0, 3)], receipt("r1"))
+      {:ok, once} = Bridge.extend(b, d)
+      {:ok, twice} = Bridge.extend(once, d)
+      assert once.correspondence == twice.correspondence
+      assert length(twice.receipts) == 1
     end
 
-    test "rejects an overlap that would give the target side two meanings", %{b: b} do
+    test "REJECTS reuse of one receipt reference for a different crossing result", %{b: b} do
+      {:ok, e} = Bridge.extend(b, delta([], receipt("r1", mode: :translated)))
+
+      assert {:error, %Error{code: :receipt_conflict} = err} =
+               Bridge.extend(e, delta([], receipt("r1", mode: :reauthored)))
+
+      assert err.details.ref == "r1"
+    end
+
+    test "rejects an overlap that would give the LEFT side two meanings", %{b: b} do
       assert {:error, %Error{code: :invalid_derivation} = err} =
-               Bridge.extend(b, deriv([span(20, 2, 99, 99, 2)]))
+               Bridge.extend(b, delta([span(10, 2, 99, 99, 2)], receipt("r1")))
 
-      # Named as an extension conflict, not merely as a malformed derivation:
-      # the caller needs to know its admission record was the thing rejected.
-      assert err.phase == :bridge
-      assert err.path == [:extension]
+      assert err.phase == :bridge and err.path == [:extension]
     end
 
-    test "rejects an overlap that would give the source side two meanings", %{b: b} do
+    test "rejects an overlap that would give the RIGHT side two meanings", %{b: b} do
       assert {:error, %Error{code: :invalid_derivation} = err} =
-               Bridge.extend(b, deriv([span(99, 99, 10, 2, 2)]))
+               Bridge.extend(b, delta([span(99, 99, 20, 2, 2)], receipt("r1")))
 
-      assert err.phase == :bridge
-      assert err.path == [:extension]
+      assert err.phase == :bridge and err.path == [:extension]
     end
   end
 
   describe "to_map/1 and from_map/1" do
-    test "matches the wire shape in spec §8.5" do
-      b = bridge("source-epoch-reference", "target-epoch-reference", [span(17, 4, 9, 21, 5)])
+    test "matches the wire shape in spec r2 §8.6" do
+      b = bridge("origin-epoch-reference", "derived-epoch-reference", [span(9, 21, 17, 4, 5)])
 
       assert Bridge.to_map(b) == %{
                "version" => 1,
-               "source_epoch" => "source-epoch-reference",
-               "target_epoch" => "target-epoch-reference",
-               "producer" => %{"id" => "yepochs.snapshot", "version" => 2},
-               "spans" => [
+               "left_epoch" => "origin-epoch-reference",
+               "right_epoch" => "derived-epoch-reference",
+               "basis" => %{
+                 "kind" => "snapshot",
+                 "origin" => "left",
+                 "derived" => "right",
+                 "producer" => %{"id" => "yepochs.snapshot", "version" => 2}
+               },
+               "correspondence" => [
                  %{
-                   "target_client" => 17,
-                   "target_clock" => 4,
-                   "source_client" => 9,
-                   "source_clock" => 21,
+                   "left_client" => 9,
+                   "left_clock" => 21,
+                   "right_client" => 17,
+                   "right_clock" => 4,
                    "length" => 5
                  }
-               ]
+               ],
+               "receipts" => []
              }
     end
 
-    test "round-trips without semantic change" do
-      b = bridge("a", "b", [span(17, 4, 9, 21, 5), span(2, 0, 1, 0, 3)])
-      assert {:ok, back} = Bridge.from_map(Bridge.to_map(b))
-      assert back == b
+    test "round-trips a bridge carrying receipts" do
+      b = bridge("a", "b", [span(9, 21, 17, 4, 5), span(1, 0, 2, 0, 3)])
+      {:ok, b} = Bridge.extend(b, delta([], receipt("r1", mode: :reauthored)))
+      assert {:ok, ^b} = Bridge.from_map(Bridge.to_map(b))
     end
 
-    test "from_map does not create atoms from wire strings" do
+    test "round-trips a composed bridge, whose basis has null roles" do
+      ab = bridge("A", "B", [span(10, 0, 20, 0, 5)])
+      bc = bridge("B", "C", [span(20, 0, 30, 0, 5)])
+      {:ok, ac} = Bridge.compose([ab, bc])
+      assert {:ok, ^ac} = Bridge.from_map(Bridge.to_map(ac))
+    end
+
+    test "rejects a snapshot basis whose roles are not opposite sides" do
+      map = Bridge.to_map(bridge("a", "b", [span(1, 0, 2, 0, 1)]))
+      bad = put_in(map["basis"]["derived"], "left")
+      assert {:error, %Error{}} = Bridge.from_map(bad)
+    end
+
+    test "does not create atoms from wire strings" do
       before = :erlang.system_info(:atom_count)
       map = Bridge.to_map(bridge("a", "b", [span(1, 0, 2, 0, 1)]))
-      {:ok, _} = Bridge.from_map(put_in(map["producer"]["id"], "yepochs.definitely-not-an-atom-yet"))
+      Bridge.from_map(put_in(map["basis"]["kind"], "yepochs-not-an-atom-yet"))
+      Bridge.from_map(put_in(map["basis"]["producer"]["id"], "also-not-an-atom-yet"))
       assert :erlang.system_info(:atom_count) == before
     end
   end

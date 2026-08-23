@@ -16,7 +16,10 @@ defmodule Yepochs.Error do
           | :bridge_endpoint_mismatch
           | :malformed_update
           | :unsupported_content
-          | :unsupported_update_feature
+          | :unsupported_translation_feature
+          | :unsupported_crossing_content
+          | :missing_endpoint_state
+          | :receipt_conflict
           | :missing_anchor
           | :missing_operation_target
           | :target_identity_collision
@@ -25,7 +28,8 @@ defmodule Yepochs.Error do
           | :invalid_rebase_input
           | :rebase_conflict
 
-  @type phase :: :derivation | :bridge | :preflight | :translate | :snapshot | :rebase
+  @type phase ::
+          :derivation | :bridge | :preflight | :translate | :snapshot | :rebase | :cross
 
   @type t :: %__MODULE__{
           code: code(),

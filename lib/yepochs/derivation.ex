@@ -2,11 +2,13 @@ defmodule Yepochs.Derivation do
   @moduledoc """
   An endpoint-free, canonical set of clock spans. Spec §6.5, §8.2, §9.
 
-  The stored direction is always `target/new -> source/old`: each span records
-  which source coordinates a target coordinate was derived *from*. That is the
-  direction that is natural while a snapshot is being built, and it records
-  provenance. Translating an old update into the new Yepoch uses the validated
-  inverse (§6.5).
+  Each span pairs coordinates at the two endpoints: `origin/old <-> derived/new`.
+  Derivation provenance is directed — the new representation was produced from
+  the old one — but ⭐ **the correspondence itself is a partial bijection and can
+  be looked up in either direction** (r2 §6.5). Despite the provenance-oriented
+  name, the value is mathematically an endpoint-free correspondence, and a bridge
+  may monotonically union derivations produced by crossings in either direction
+  once their spans are oriented to its left and right endpoints (§8.2).
 
   Keeping a derivation endpoint-free is what avoids a content-addressing cycle
   (§6.6): a caller can build the derivation, place it in an object, hash that
@@ -52,8 +54,8 @@ defmodule Yepochs.Derivation do
 
   def validate(%__MODULE__{spans: spans}) when is_list(spans) do
     with :ok <- validate_spans(spans),
-         :ok <- validate_no_overlap(spans, :target),
-         :ok <- validate_no_overlap(spans, :source) do
+         :ok <- validate_no_overlap(spans, :left),
+         :ok <- validate_no_overlap(spans, :right) do
       :ok
     end
   end
@@ -69,10 +71,10 @@ defmodule Yepochs.Derivation do
           # Re-run the field rules, so a struct built by hand rather than
           # through Span.new/1 cannot smuggle a bad coordinate in.
           case Span.new(
-                 target_client: s.target_client,
-                 target_clock: s.target_clock,
-                 source_client: s.source_client,
-                 source_clock: s.source_clock,
+                 right_client: s.right_client,
+                 right_clock: s.right_clock,
+                 left_client: s.left_client,
+                 left_clock: s.left_clock,
                  length: s.length
                ) do
             {:ok, _} -> {:cont, :ok}
@@ -89,8 +91,8 @@ defmodule Yepochs.Derivation do
   defp validate_no_overlap(spans, side) do
     {client_key, clock_key} =
       case side do
-        :target -> {:target_client, :target_clock}
-        :source -> {:source_client, :source_clock}
+        :right -> {:right_client, :right_clock}
+        :left -> {:left_client, :left_clock}
       end
 
     spans
@@ -151,33 +153,26 @@ defmodule Yepochs.Derivation do
   end
 
   defp contiguous?(%Span{} = a, %Span{} = b) do
-    a.target_client == b.target_client and
-      a.source_client == b.source_client and
-      Span.target_end(a) == b.target_clock and
-      Span.source_end(a) == b.source_clock
+    a.right_client == b.right_client and
+      a.left_client == b.left_client and
+      Span.right_end(a) == b.right_clock and
+      Span.left_end(a) == b.left_clock
   end
 
   @doc """
-  Swaps target and source coordinates in every span, then normalizes.
+  Exchanges left and right coordinates in every span, then normalizes.
 
-  Fails if the input is not a valid partial bijection — an inverted mapping is
+  Fails if the input is not a valid partial bijection — a reoriented mapping is
   only meaningful when each side is unambiguous. For every valid derivation,
-  `invert(invert(d)) == normalize(d)` (§13).
+  `invert(invert(d)) == normalize(d)` (§13). Reorienting swaps presentation, not
+  capability: the same edits can cross in both directions (invariant 6).
   """
   @spec invert(t()) :: {:ok, t()} | {:error, Error.t()}
   def invert(%__MODULE__{} = derivation) do
     case validate(derivation) do
       :ok ->
         derivation.spans
-        |> Enum.map(fn s ->
-          %Span{
-            target_client: s.source_client,
-            target_clock: s.source_clock,
-            source_client: s.target_client,
-            source_clock: s.target_clock,
-            length: s.length
-          }
-        end)
+        |> Enum.map(&Span.flip/1)
         |> then(&%__MODULE__{format_version: @format_version, spans: &1})
         |> normalize()
 
@@ -201,10 +196,10 @@ defmodule Yepochs.Derivation do
 
   defp span_to_map(%Span{} = s) do
     %{
-      "target_client" => s.target_client,
-      "target_clock" => s.target_clock,
-      "source_client" => s.source_client,
-      "source_clock" => s.source_clock,
+      "right_client" => s.right_client,
+      "right_clock" => s.right_clock,
+      "left_client" => s.left_client,
+      "left_clock" => s.left_clock,
       "length" => s.length
     }
   end
@@ -230,17 +225,17 @@ defmodule Yepochs.Derivation do
   def from_map(_), do: {:error, Error.new(:invalid_derivation, :derivation)}
 
   defp span_from_map(%{
-         "target_client" => tc,
-         "target_clock" => tk,
-         "source_client" => sc,
-         "source_clock" => sk,
+         "right_client" => tc,
+         "right_clock" => tk,
+         "left_client" => sc,
+         "left_clock" => sk,
          "length" => len
        }) do
     Span.new(
-      target_client: tc,
-      target_clock: tk,
-      source_client: sc,
-      source_clock: sk,
+      right_client: tc,
+      right_clock: tk,
+      left_client: sc,
+      left_clock: sk,
       length: len
     )
   end

@@ -29,6 +29,20 @@ Both modules exist on `commonplace` main today:
 *"need `Commonplace.Store` and stay"* — the dependency has to be broken before either can leave.
 Plan's open question, in its words, is **"whether 124 lines is a package or a module."**
 
+## ⚠️ There are TWO spec revisions and they are indistinguishable by header
+
+Both say `Version: 0.1-draft`, `Date: 2026-08-22`. **Tell them apart by sha256.**
+
+| revision | path | sha256 |
+|---|---|---|
+| r1 | `docs/proposals/2026-08-22-yepochs-spec.md` | `c24ce9dd…` |
+| **r2 — CURRENT** | `docs/proposals/2026-08-23-yepochs-spec-r2.md` | `8765bb15…` |
+
+r2 makes Bridges **bilateral edit transducers**: one-directional translation became *crossing*, and
+missing correspondence now **selects re-authoring instead of failing**. See
+[`docs/design/0003-r2-migration.md`](docs/design/0003-r2-migration.md). r1 is kept because it is what
+Tier 0 was first built against.
+
 ## ⛔ The gate — see `docs/design/0001-build-order-and-gate.md` for the binding wording
 
 ⚠️ **The section below is the ORIGINAL wording and it is superseded.** `commonplace-plan` corrected

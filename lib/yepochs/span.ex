@@ -1,47 +1,45 @@
 defmodule Yepochs.Span do
   @moduledoc """
-  One clock-interval correspondence between a target Yepoch and a source Yepoch.
+  One clock-interval correspondence between a bridge's two endpoints.
+  Spec r2 §8.1.
 
-  Spec §8.1. For offset `n` where `0 <= n < length`:
+  For offset `n` where `0 <= n < length`:
 
-      {target_client, target_clock + n} derives from {source_client, source_clock + n}
+      {left_client, left_clock + n} corresponds to {right_client, right_clock + n}
 
-  Intervals, not item-start pairs, are the durable mapping primitive (§27.1).
-  Yjs may consolidate or split structs while retaining references to clocks
-  inside their logical ranges, so a mapping keyed on item starts cannot answer
-  a reference into the middle of a multi-clock item.
+  ⭐ `left` and `right` are a **stable orientation, not a direction of travel**.
+  For a fresh snapshot derivation the left side is the origin (old) document and
+  the right side is the newly derived one — but once attached to a bridge the
+  names refer only to that bridge's endpoint orientation, and edits cross in
+  either direction (§6.6).
+
+  Intervals, not item-start pairs, are the durable primitive (§27.1): Yjs may
+  consolidate or split structs while retaining references to clocks inside their
+  logical ranges, so a mapping keyed on item starts cannot answer a reference
+  into the middle of a multi-clock item.
   """
 
   alias Yepochs.Error
 
-  @enforce_keys [
-    :target_client,
-    :target_clock,
-    :source_client,
-    :source_clock,
-    :length
-  ]
-
+  @enforce_keys [:left_client, :left_clock, :right_client, :right_clock, :length]
   defstruct @enforce_keys
 
   @type t :: %__MODULE__{
-          target_client: non_neg_integer(),
-          target_clock: non_neg_integer(),
-          source_client: non_neg_integer(),
-          source_clock: non_neg_integer(),
+          left_client: non_neg_integer(),
+          left_clock: non_neg_integer(),
+          right_client: non_neg_integer(),
+          right_clock: non_neg_integer(),
           length: pos_integer()
         }
 
   @typedoc "A Yjs coordinate. Spec §6.1."
   @type item_ref :: {non_neg_integer(), non_neg_integer()}
 
-  @doc """
-  Largest Yjs-safe integer. Coordinates and interval ends must not exceed it.
-  """
+  @doc "Largest Yjs-safe integer. Coordinates and interval ends must not exceed it."
   @spec max_safe_integer() :: pos_integer()
   def max_safe_integer, do: Bitwise.bsl(1, 53) - 1
 
-  @coordinate_fields [:target_client, :target_clock, :source_client, :source_clock]
+  @coordinate_fields [:left_client, :left_clock, :right_client, :right_clock]
 
   @spec new(keyword()) :: {:ok, t()} | {:error, Error.t()}
   def new(fields) when is_list(fields) do
@@ -50,10 +48,10 @@ defmodule Yepochs.Span do
          :ok <- validate_no_overflow(fields) do
       {:ok,
        %__MODULE__{
-         target_client: Keyword.fetch!(fields, :target_client),
-         target_clock: Keyword.fetch!(fields, :target_clock),
-         source_client: Keyword.fetch!(fields, :source_client),
-         source_clock: Keyword.fetch!(fields, :source_clock),
+         left_client: Keyword.fetch!(fields, :left_client),
+         left_clock: Keyword.fetch!(fields, :left_clock),
+         right_client: Keyword.fetch!(fields, :right_client),
+         right_clock: Keyword.fetch!(fields, :right_clock),
          length: Keyword.fetch!(fields, :length)
        }}
     end
@@ -69,50 +67,53 @@ defmodule Yepochs.Span do
 
   defp validate_length(fields) do
     case Keyword.fetch!(fields, :length) do
-      value when is_integer(value) and value > 0 -> if safe_non_neg?(value), do: :ok, else: invalid(:length)
+      v when is_integer(v) and v > 0 -> if safe_non_neg?(v), do: :ok, else: invalid(:length)
       _ -> invalid(:length)
     end
   end
 
-  defp safe_non_neg?(value) do
-    is_integer(value) and value >= 0 and value <= max_safe_integer()
-  end
+  defp safe_non_neg?(v), do: is_integer(v) and v >= 0 and v <= max_safe_integer()
 
   # The half-open interval [clock, clock + length) must keep its last occupied
   # clock inside the safe range on both sides.
   defp validate_no_overflow(fields) do
-    length = Keyword.fetch!(fields, :length)
+    len = Keyword.fetch!(fields, :length)
 
     cond do
-      Keyword.fetch!(fields, :target_clock) + length - 1 > max_safe_integer() ->
-        invalid(:target_clock)
-
-      Keyword.fetch!(fields, :source_clock) + length - 1 > max_safe_integer() ->
-        invalid(:source_clock)
-
-      true ->
-        :ok
+      Keyword.fetch!(fields, :left_clock) + len - 1 > max_safe_integer() -> invalid(:left_clock)
+      Keyword.fetch!(fields, :right_clock) + len - 1 > max_safe_integer() -> invalid(:right_clock)
+      true -> :ok
     end
   end
 
-  defp invalid(field) do
-    {:error, Error.new(:invalid_derivation, :derivation, path: [field])}
-  end
+  defp invalid(field), do: {:error, Error.new(:invalid_derivation, :derivation, path: [field])}
 
-  @doc "Exclusive end of the target interval. Spec §6.2."
-  @spec target_end(t()) :: non_neg_integer()
-  def target_end(%__MODULE__{} = span), do: span.target_clock + span.length
+  @doc "Exclusive end of the left interval. Spec §6.2."
+  @spec left_end(t()) :: non_neg_integer()
+  def left_end(%__MODULE__{} = s), do: s.left_clock + s.length
 
-  @doc "Exclusive end of the source interval. Spec §6.2."
-  @spec source_end(t()) :: non_neg_integer()
-  def source_end(%__MODULE__{} = span), do: span.source_clock + span.length
+  @doc "Exclusive end of the right interval. Spec §6.2."
+  @spec right_end(t()) :: non_neg_integer()
+  def right_end(%__MODULE__{} = s), do: s.right_clock + s.length
 
   @doc """
-  Canonical ordering key. Spec §9 sorts by target client, target clock, source
-  client, then source clock.
+  Canonical ordering key. r2 §9 sorts LEFT-first: left client, left clock, right
+  client, then right clock. (r1 sorted target-first; the canonical order of the
+  same logical derivation therefore changed between revisions.)
   """
-  @spec sort_key(t()) :: {non_neg_integer(), non_neg_integer(), non_neg_integer(), non_neg_integer()}
-  def sort_key(%__MODULE__{} = span) do
-    {span.target_client, span.target_clock, span.source_client, span.source_clock}
+  @spec sort_key(t()) ::
+          {non_neg_integer(), non_neg_integer(), non_neg_integer(), non_neg_integer()}
+  def sort_key(%__MODULE__{} = s), do: {s.left_client, s.left_clock, s.right_client, s.right_clock}
+
+  @doc "Exchanges the two sides. Reorienting is presentation, not a new relationship (§13)."
+  @spec flip(t()) :: t()
+  def flip(%__MODULE__{} = s) do
+    %__MODULE__{
+      left_client: s.right_client,
+      left_clock: s.right_clock,
+      right_client: s.left_client,
+      right_clock: s.left_clock,
+      length: s.length
+    }
   end
 end

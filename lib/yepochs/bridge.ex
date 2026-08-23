@@ -1,15 +1,23 @@
 defmodule Yepochs.Bridge do
   @moduledoc """
-  A derivation with its source and target Yepoch references attached.
-  Spec §6.6, §8.3, §11–§14, §17.
+  An evolving, **bidirectional** edit-compatibility relationship between two
+  Yepochs. Spec r2 §6.6, §8.3, §11–§14, §17.
 
-      source Yepoch --snapshot/derivation--> target Yepoch
+  ⭐ **A bridge has no permanent source or target.** Its endpoints are called
+  `left` and `right` only to give persisted correspondence spans a stable
+  orientation. For one crossing, the endpoint where the edit was authored is the
+  source and the other is the destination; the roles reverse for an edit
+  travelling the other way (§6.6).
 
-  The stored spans still point from target coordinates back to source
-  coordinates; attaching endpoint labels changes no span (§11).
+  A bridge is an immutable value that evolves by applying append-only deltas
+  (§17). Bridge evolution is monotonic: accepted correspondence and receipts are
+  added, never silently rewritten or removed (invariant 12).
   """
 
   alias Yepochs.Algorithm
+  alias Yepochs.Bridge.Basis
+  alias Yepochs.Bridge.Delta
+  alias Yepochs.Crossing.Receipt
   alias Yepochs.Derivation
   alias Yepochs.Error
   alias Yepochs.Span
@@ -17,43 +25,53 @@ defmodule Yepochs.Bridge do
   @format_version 1
   @max_epoch_ref_bytes 1024
 
-  @enforce_keys [:format_version, :source_epoch, :target_epoch, :derivation, :producer]
+  @enforce_keys [:format_version, :left_epoch, :right_epoch, :correspondence, :basis, :receipts]
   defstruct @enforce_keys
 
   @type t :: %__MODULE__{
           format_version: pos_integer(),
-          source_epoch: String.t(),
-          target_epoch: String.t(),
-          derivation: Derivation.t(),
-          producer: Algorithm.t()
+          left_epoch: String.t(),
+          right_epoch: String.t(),
+          correspondence: Derivation.t(),
+          basis: Basis.t(),
+          receipts: [Receipt.t()]
         }
 
   @type item_ref :: Span.item_ref()
 
   @doc """
   Spec §11. Validates both epoch references, validates and normalizes the
-  derivation, and rejects equal endpoints.
+  derivation, rejects equal endpoints, assigns the **origin** to the bridge's
+  left endpoint and the **derived** Yepoch to its right endpoint, and records
+  that directed fact in `basis`.
+
+  Attaching endpoint labels changes no span. ⭐ **Later use of the bridge is
+  bidirectional regardless of its construction orientation.**
   """
   @spec attach(Derivation.t(), String.t(), String.t(), Algorithm.t()) ::
           {:ok, t()} | {:error, Error.t()}
-  def attach(%Derivation{} = derivation, source_epoch, target_epoch, %Algorithm{} = producer) do
-    with :ok <- validate_epoch_ref(source_epoch, :source_epoch),
-         :ok <- validate_epoch_ref(target_epoch, :target_epoch),
-         :ok <- reject_equal_endpoints(source_epoch, target_epoch),
+  def attach(%Derivation{} = derivation, origin_epoch, derived_epoch, %Algorithm{} = producer) do
+    basis = %Basis{kind: :snapshot, producer: producer, origin: :left, derived: :right}
+
+    with :ok <- validate_epoch_ref(origin_epoch, :left_epoch),
+         :ok <- validate_epoch_ref(derived_epoch, :right_epoch),
+         :ok <- reject_equal_endpoints(origin_epoch, derived_epoch),
+         :ok <- Basis.validate(basis),
          {:ok, normalized} <- Derivation.normalize(derivation) do
       {:ok,
        %__MODULE__{
          format_version: @format_version,
-         source_epoch: source_epoch,
-         target_epoch: target_epoch,
-         derivation: normalized,
-         producer: producer
+         left_epoch: origin_epoch,
+         right_epoch: derived_epoch,
+         correspondence: normalized,
+         basis: basis,
+         receipts: []
        }}
     end
   end
 
-  # §6.3: an opaque, canonical UTF-8 string. Not required to be a UUID, CID,
-  # hash, or Commonplace commit ID; compared byte-for-byte.
+  # §6.3: an opaque, canonical UTF-8 string, compared byte-for-byte. Not
+  # required to be a UUID, CID, hash, or Commonplace commit ID.
   defp validate_epoch_ref(ref, field) when is_binary(ref) do
     cond do
       not String.valid?(ref) -> epoch_error(field)
@@ -71,27 +89,29 @@ defmodule Yepochs.Bridge do
   defp epoch_error(field), do: {:error, Error.new(:invalid_epoch_ref, :bridge, path: [field])}
 
   @doc """
-  Stored provenance direction: target -> source. Spec §12.
+  Given a coordinate in the **left** endpoint, return its right-endpoint
+  counterpart. Spec §12.
 
   Resolves a reference to any clock inside a span, not only the first clock of
   an encoded Yjs item, and never falls back to the same numeric coordinate.
-  """
-  @spec source_ref(t(), item_ref()) :: {:ok, item_ref()} | :unmapped
-  def source_ref(%__MODULE__{} = bridge, {client, clock}) do
-    lookup(bridge.derivation.spans, client, clock, :target)
-  end
 
-  @doc "Translation direction: source -> target. Spec §12."
-  @spec target_ref(t(), item_ref()) :: {:ok, item_ref()} | :unmapped
-  def target_ref(%__MODULE__{} = bridge, {client, clock}) do
-    lookup(bridge.derivation.spans, client, clock, :source)
-  end
+  ⚠️ **`:unmapped` exposes only the strict correspondence. It selects the
+  crossing fallback; it does not prove that an edit cannot cross** (§12, §27.4).
+  """
+  @spec right_ref(t(), item_ref()) :: {:ok, item_ref()} | :unmapped
+  def right_ref(%__MODULE__{} = bridge, {client, clock}),
+    do: lookup(bridge.correspondence.spans, client, clock, :left)
+
+  @doc "Given a coordinate in the **right** endpoint, return its left counterpart. Spec §12."
+  @spec left_ref(t(), item_ref()) :: {:ok, item_ref()} | :unmapped
+  def left_ref(%__MODULE__{} = bridge, {client, clock}),
+    do: lookup(bridge.correspondence.spans, client, clock, :right)
 
   defp lookup(spans, client, clock, from) do
     {from_client, from_clock, to_client, to_clock} =
       case from do
-        :target -> {:target_client, :target_clock, :source_client, :source_clock}
-        :source -> {:source_client, :source_clock, :target_client, :target_clock}
+        :left -> {:left_client, :left_clock, :right_client, :right_clock}
+        :right -> {:right_client, :right_clock, :left_client, :left_clock}
       end
 
     Enum.find_value(spans, :unmapped, fn span ->
@@ -103,32 +123,45 @@ defmodule Yepochs.Bridge do
     end)
   end
 
-  @doc "Spec §13. Swaps the endpoint references and every span coordinate, then normalizes."
+  @doc """
+  Spec §13. Exchanges endpoint references, span coordinates, basis roles, and
+  receipt sides, then normalizes.
+
+  ⭐ **It does not produce a new logical relationship** — reorienting swaps
+  presentation, not capability (invariant 6).
+  """
   @spec invert(t()) :: {:ok, t()} | {:error, Error.t()}
   def invert(%__MODULE__{} = bridge) do
-    with {:ok, inverted} <- Derivation.invert(bridge.derivation) do
+    with {:ok, flipped} <- Derivation.invert(bridge.correspondence) do
       {:ok,
        %__MODULE__{
          bridge
-         | source_epoch: bridge.target_epoch,
-           target_epoch: bridge.source_epoch,
-           derivation: inverted
+         | left_epoch: bridge.right_epoch,
+           right_epoch: bridge.left_epoch,
+           correspondence: flipped,
+           basis: Basis.flip(bridge.basis),
+           receipts: Enum.map(bridge.receipts, &Receipt.flip/1)
        }}
     end
   end
 
   @doc """
   Spec §14. Composes `A --ab--> B --bc--> C` into `A --ac--> C`, calculating the
-  stored mapping in provenance direction `C -> B -> A`.
+  strict correspondence through the shared endpoint `A <-> B <-> C`.
 
-  The result may be smaller than either input, because each bridge is partial.
-  Missing coverage is reported later by preflight; composition never invents it.
+  The resulting mapping may be smaller than either input because each
+  correspondence is partial. ⛔ **Composition never invents missing item
+  mappings** — an edit crossing the composed bridge uses positional re-authoring
+  when strict preflight lacks coverage.
+
+  Edge-specific crossing receipts are **left on their original bridges** rather
+  than pretending they occurred directly between A and C (§14 item 7).
   """
   @spec compose([t()]) :: {:ok, t()} | {:error, Error.t()}
   def compose([]), do: {:error, Error.new(:bridge_endpoint_mismatch, :bridge, path: [:path])}
   def compose([%__MODULE__{} = only]), do: {:ok, only}
 
-  def compose([%__MODULE__{} = first | rest] = bridges) when is_list(bridges) do
+  def compose([%__MODULE__{} = first | rest]) do
     Enum.reduce_while(rest, {:ok, first}, fn next, {:ok, acc} ->
       case compose_pair(acc, next) do
         {:ok, composed} -> {:cont, {:ok, composed}}
@@ -138,17 +171,17 @@ defmodule Yepochs.Bridge do
   end
 
   defp compose_pair(%__MODULE__{} = ab, %__MODULE__{} = bc) do
-    if ab.target_epoch != bc.source_epoch do
+    if ab.right_epoch != bc.left_epoch do
       {:error,
        Error.new(:bridge_endpoint_mismatch, :bridge,
-         details: %{expected_source: ab.target_epoch, got_source: bc.source_epoch}
+         details: %{expected_left: ab.right_epoch, got_left: bc.left_epoch}
        )}
     else
       spans =
-        for bc_span <- bc.derivation.spans,
-            ab_span <- ab.derivation.spans,
-            bc_span.source_client == ab_span.target_client,
-            overlap = intersect(bc_span, ab_span),
+        for ab_span <- ab.correspondence.spans,
+            bc_span <- bc.correspondence.spans,
+            ab_span.right_client == bc_span.left_client,
+            overlap = intersect(ab_span, bc_span),
             overlap != nil,
             do: overlap
 
@@ -157,101 +190,119 @@ defmodule Yepochs.Bridge do
         {:ok,
          %__MODULE__{
            format_version: @format_version,
-           source_epoch: ab.source_epoch,
-           target_epoch: bc.target_epoch,
-           derivation: normalized,
-           producer: Algorithm.compose()
+           left_epoch: ab.left_epoch,
+           right_epoch: bc.right_epoch,
+           correspondence: normalized,
+           basis: %Basis{kind: :composition, producer: Algorithm.compose()},
+           receipts: []
          }}
       end
     end
   end
 
-  # Intersect the two spans over their shared intermediate (B) clock range,
-  # then re-express the overlap as C -> A.
-  defp intersect(bc_span, ab_span) do
-    lo = max(bc_span.source_clock, ab_span.target_clock)
-    hi = min(Span.source_end(bc_span), Span.target_end(ab_span))
+  # Intersect over the shared intermediate (B) clock range, then re-express the
+  # overlap as A <-> C.
+  defp intersect(ab_span, bc_span) do
+    lo = max(ab_span.right_clock, bc_span.left_clock)
+    hi = min(Span.right_end(ab_span), Span.left_end(bc_span))
 
     if lo < hi do
       %Span{
-        target_client: bc_span.target_client,
-        target_clock: bc_span.target_clock + (lo - bc_span.source_clock),
-        source_client: ab_span.source_client,
-        source_clock: ab_span.source_clock + (lo - ab_span.target_clock),
+        left_client: ab_span.left_client,
+        left_clock: ab_span.left_clock + (lo - ab_span.right_clock),
+        right_client: bc_span.right_client,
+        right_clock: bc_span.right_clock + (lo - bc_span.left_clock),
         length: hi - lo
       }
     end
   end
 
   @doc """
-  Spec §17. Adds admitted carried-identity mappings to a bridge.
+  Spec §17. Applies an append-only delta from an admitted crossing.
 
-  This is an admission record, not merely an optimization: the caller must
-  persist the extension, or reconstruct it from accepted translated commits,
-  before translating a later dependent update.
+  This is an admission record, not merely an optimization: the caller MUST
+  persist the extension, or reconstruct it from accepted crossing records,
+  before relying on it for a later strict translation.
   """
-  @spec extend(t(), Derivation.t()) :: {:ok, t()} | {:error, Error.t()}
-  def extend(%__MODULE__{} = bridge, %Derivation{} = addition) do
-    with :ok <- Derivation.validate(addition),
-         :ok <- check_extension_consistency(bridge.derivation.spans, addition.spans),
+  @spec extend(t(), Delta.t()) :: {:ok, t()} | {:error, Error.t()}
+  def extend(%__MODULE__{} = bridge, %Delta{} = delta) do
+    with :ok <- Derivation.validate(delta.correspondence),
+         :ok <- check_receipt(bridge.receipts, delta.receipt),
+         :ok <- check_span_consistency(bridge.correspondence.spans, delta.correspondence.spans),
          {:ok, derivation} <-
-           Derivation.new(merge_lines(bridge.derivation.spans ++ addition.spans)),
+           Derivation.new(merge_lines(bridge.correspondence.spans ++ delta.correspondence.spans)),
          {:ok, normalized} <- Derivation.normalize(derivation) do
-      {:ok, %__MODULE__{bridge | derivation: normalized}}
+      {:ok,
+       %__MODULE__{
+         bridge
+         | correspondence: normalized,
+           receipts: append_receipt(bridge.receipts, delta.receipt)
+       }}
     end
+  end
+
+  # An exact duplicate receipt is idempotent; the SAME ref carrying a different
+  # crossing result is a conflict, not an update — evolution is monotonic.
+  defp check_receipt(existing, %Receipt{} = new) do
+    case Enum.find(existing, &(&1.ref == new.ref)) do
+      nil -> :ok
+      ^new -> :ok
+      _ -> {:error, Error.new(:receipt_conflict, :bridge, path: [:receipt], details: %{ref: new.ref})}
+    end
+  end
+
+  defp append_receipt(existing, %Receipt{} = new) do
+    if Enum.any?(existing, &(&1 == new)), do: existing, else: existing ++ [new]
   end
 
   # An overlap is admissible only when both spans lie on the same mapping line —
   # same client pair, same clock delta. Anything else would give one side two
   # meanings.
-  defp check_extension_consistency(existing, additions) do
+  defp check_span_consistency(existing, additions) do
     Enum.reduce_while(additions, :ok, fn add, :ok ->
       conflict =
         Enum.find(existing, fn old ->
-          (overlaps?(old, add, :target) or overlaps?(old, add, :source)) and
-            not same_line?(old, add)
+          (overlaps?(old, add, :left) or overlaps?(old, add, :right)) and not same_line?(old, add)
         end)
 
-      if conflict do
-        {:halt, {:error, Error.new(:invalid_derivation, :bridge, path: [:extension])}}
-      else
-        {:cont, :ok}
-      end
+      if conflict,
+        do: {:halt, {:error, Error.new(:invalid_derivation, :bridge, path: [:extension])}},
+        else: {:cont, :ok}
     end)
   end
 
-  defp overlaps?(a, b, :target) do
-    a.target_client == b.target_client and
-      a.target_clock < Span.target_end(b) and b.target_clock < Span.target_end(a)
+  defp overlaps?(a, b, :left) do
+    a.left_client == b.left_client and a.left_clock < Span.left_end(b) and
+      b.left_clock < Span.left_end(a)
   end
 
-  defp overlaps?(a, b, :source) do
-    a.source_client == b.source_client and
-      a.source_clock < Span.source_end(b) and b.source_clock < Span.source_end(a)
+  defp overlaps?(a, b, :right) do
+    a.right_client == b.right_client and a.right_clock < Span.right_end(b) and
+      b.right_clock < Span.right_end(a)
   end
 
   defp same_line?(a, b) do
-    a.target_client == b.target_client and a.source_client == b.source_client and
-      a.source_clock - a.target_clock == b.source_clock - b.target_clock
+    a.left_client == b.left_client and a.right_client == b.right_client and
+      a.right_clock - a.left_clock == b.right_clock - b.left_clock
   end
 
   # Spans on the same mapping line that overlap or touch collapse into one, so
   # an exact duplicate extension is idempotent (§17).
   defp merge_lines(spans) do
     spans
-    |> Enum.group_by(fn s -> {s.target_client, s.source_client, s.source_clock - s.target_clock} end)
+    |> Enum.group_by(fn s -> {s.left_client, s.right_client, s.right_clock - s.left_clock} end)
     |> Enum.flat_map(fn {_line, group} -> merge_group(group) end)
     |> Enum.sort_by(&Span.sort_key/1)
   end
 
   defp merge_group(group) do
     group
-    |> Enum.sort_by(& &1.target_clock)
+    |> Enum.sort_by(& &1.left_clock)
     |> Enum.reduce([], fn span, acc ->
       case acc do
-        [prev | rest] when span.target_clock <= prev.target_clock + prev.length ->
-          new_end = max(Span.target_end(prev), Span.target_end(span))
-          [%Span{prev | length: new_end - prev.target_clock} | rest]
+        [prev | rest] when span.left_clock <= prev.left_clock + prev.length ->
+          new_end = max(Span.left_end(prev), Span.left_end(span))
+          [%Span{prev | length: new_end - prev.left_clock} | rest]
 
         _ ->
           [span | acc]
@@ -260,39 +311,60 @@ defmodule Yepochs.Bridge do
     |> Enum.reverse()
   end
 
-  @doc "Portable wire value. Spec §8.5."
+  @doc "Portable wire value. Spec §8.6."
   @spec to_map(t()) :: map()
   def to_map(%__MODULE__{} = bridge) do
-    bridge.derivation
-    |> Derivation.to_map()
-    |> Map.merge(%{
+    %{
       "version" => @format_version,
-      "source_epoch" => bridge.source_epoch,
-      "target_epoch" => bridge.target_epoch,
-      "producer" => Algorithm.to_map(bridge.producer)
-    })
+      "left_epoch" => bridge.left_epoch,
+      "right_epoch" => bridge.right_epoch,
+      "basis" => Basis.to_map(bridge.basis),
+      "correspondence" => Derivation.to_map(bridge.correspondence)["spans"],
+      "receipts" => Enum.map(bridge.receipts, &Receipt.to_map/1)
+    }
   end
 
   @spec from_map(map()) :: {:ok, t()} | {:error, Error.t()}
   def from_map(%{
         "version" => @format_version,
-        "source_epoch" => source_epoch,
-        "target_epoch" => target_epoch,
-        "producer" => producer_map,
-        "spans" => spans
-      }) do
-    with {:ok, producer} <- algorithm_from_map(producer_map),
-         {:ok, derivation} <- Derivation.from_map(%{"version" => 1, "spans" => spans}) do
-      attach(derivation, source_epoch, target_epoch, producer)
+        "left_epoch" => left_epoch,
+        "right_epoch" => right_epoch,
+        "basis" => basis_map,
+        "correspondence" => spans
+      } = map) do
+    with {:ok, basis} <- decode(Basis.from_map(basis_map), :basis),
+         {:ok, receipts} <- decode_receipts(Map.get(map, "receipts", [])),
+         {:ok, derivation} <- Derivation.from_map(%{"version" => 1, "spans" => spans}),
+         :ok <- Basis.validate(basis),
+         :ok <- validate_epoch_ref(left_epoch, :left_epoch),
+         :ok <- validate_epoch_ref(right_epoch, :right_epoch),
+         :ok <- reject_equal_endpoints(left_epoch, right_epoch),
+         {:ok, normalized} <- Derivation.normalize(derivation) do
+      {:ok,
+       %__MODULE__{
+         format_version: @format_version,
+         left_epoch: left_epoch,
+         right_epoch: right_epoch,
+         correspondence: normalized,
+         basis: basis,
+         receipts: receipts
+       }}
     end
   end
 
   def from_map(_), do: {:error, Error.new(:invalid_derivation, :bridge)}
 
-  defp algorithm_from_map(map) do
-    case Algorithm.from_map(map) do
-      {:ok, algorithm} -> {:ok, algorithm}
-      :error -> {:error, Error.new(:incompatible_algorithm, :bridge, path: [:producer])}
-    end
+  defp decode_receipts(list) when is_list(list) do
+    Enum.reduce_while(list, {:ok, []}, fn raw, {:ok, acc} ->
+      case Receipt.from_map(raw) do
+        {:ok, receipt} -> {:cont, {:ok, acc ++ [receipt]}}
+        _ -> {:halt, {:error, Error.new(:invalid_derivation, :bridge, path: [:receipts])}}
+      end
+    end)
   end
+
+  defp decode_receipts(_), do: {:error, Error.new(:invalid_derivation, :bridge, path: [:receipts])}
+
+  defp decode({:ok, value}, _field), do: {:ok, value}
+  defp decode(_, field), do: {:error, Error.new(:invalid_derivation, :bridge, path: [field])}
 end

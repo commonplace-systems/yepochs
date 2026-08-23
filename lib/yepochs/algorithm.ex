@@ -18,7 +18,9 @@ defmodule Yepochs.Algorithm do
   def snapshot, do: %__MODULE__{id: "yepochs.snapshot", version: 2}
   @doc "Strict identity translation."
   def translate, do: %__MODULE__{id: "yepochs.translate", version: 1}
-  @doc "Positional fallback."
+  @doc "Bidirectional crossing strategy and result contract."
+  def cross, do: %__MODULE__{id: "yepochs.cross", version: 1}
+  @doc "Positional re-authoring fallback."
   def rebase, do: %__MODULE__{id: "yepochs.rebase", version: 1}
   @doc "Composition of compatible bridge mappings."
   def compose, do: %__MODULE__{id: "yepochs.compose", version: 1}
@@ -27,7 +29,7 @@ defmodule Yepochs.Algorithm do
 
   @doc "Every algorithm version this build supports. Spec §21 requires this be exposed."
   @spec supported() :: [t()]
-  def supported, do: [snapshot(), translate(), rebase(), compose(), extend()]
+  def supported, do: [snapshot(), translate(), cross(), rebase(), compose(), extend()]
 
   @spec to_map(t()) :: map()
   def to_map(%__MODULE__{} = a), do: %{"id" => a.id, "version" => a.version}
