@@ -54,7 +54,21 @@ commonplace-plan's queue carries two findings that bound when this extraction ca
 ### ✅ SUPERSEDED 2026-08-23 04:28Z — jes supplied a spec and staffed it
 
 jes: *"I'll try to get you a yepochs spec so we can have an opus there too."* He then sent one.
-⇒ The spec is filed byte-identical at
+⛔ **TWO REVISIONS EXIST AND THEIR HEADERS DO NOT DISTINGUISH THEM** — both say
+`Version: 0.1-draft`, both say `Date: 2026-08-22`. **Tell them apart by sha256, never by the header.**
+
+| received | file | sha256 | lines |
+|---|---|---|---|
+| 04:28Z | `docs/proposals/2026-08-22-yepochs-spec.md` | `c24ce9dd…` | 1315 |
+| **04:51Z — CURRENT** | `docs/proposals/2026-08-23-yepochs-spec-r2.md` | `8765bb15…` | **1718** |
+
+⭐ **The r2 change that matters most: §15 went from *"Strict update translation"* to *"Crossing
+edits"*, and §1 now reads "moving Yjs edits **in either direction**".** New §27.4 is *"Make Bridges
+bilateral edit transducers"*, plus new §8.4 (bridge delta and receipt), §15.1–15.10, and §6.7–6.10.
+⇒ **One-directional translation became bilateral crossing.** Anything built against r1's Bridge
+semantics should be re-read against r2 before extending.
+
+⇒ The r1 spec is filed byte-identical at
 [`docs/proposals/2026-08-22-yepochs-spec.md`](docs/proposals/2026-08-22-yepochs-spec.md)
 (sha256 `c24ce9ddb9919fdf6846737f0ee2425320bc71d89a932211e09029958d055e34`) and an Opus worker runs
 here.
