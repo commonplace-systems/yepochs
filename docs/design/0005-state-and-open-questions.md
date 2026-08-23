@@ -79,3 +79,29 @@ mix compile --warnings-as-errors  # clean
 
 Probes needing the substrate live in `probes/` with their own README — run them from a throwaway
 project, **not inside `~/yelixer`**.
+
+## Coverage — 97.2%, and what the remainder is
+
+`mix test --cover` is a **third partition**, distinct from both unit tests and mutation testing: it
+does not ask whether a check works, only whether a line ever ran. It found **41 unexercised lines**
+at 93.3%, most of them error and fallback branches — *the code that only runs once something has
+already gone wrong, and therefore the least exercised and most likely to be wrong when it finally
+is.* Among them a genuine §15.7 gap: an **ID-valued parent with no mapping** had never been tested,
+so the distinction §15.7 draws between that and a missing anchor was unverified.
+
+⚠️ **The residual ~3% is not a to-do list.** It is, deliberately:
+
+- **function heads carrying default arguments** (`def snapshot(doc, opts \\ [])`) — cover attributes
+  the head separately from the clause; there is no branch there to exercise;
+- **`Snapshotter`'s `:lossy_nested_subtypes` arm** — `Yelixer.Doc.nested_subtype_names/1` returns
+  `[]` for every shape reachable through the public type API, so the branch cannot be entered from
+  outside. It stays because the substrate can start returning names without warning;
+- **`Translator.rewrite_parent/2`'s catch-all** — yelixer emits only `{:named,_}`, `{:id,_}` and
+  `{:infer,_}`. Forcing the branch with a hand-built `parent: nil` makes yelixer's *encoder* raise,
+  which proves it defensive rather than reachable. ⇒ **A test asserts the guarantee instead of the
+  branch:** across the upstream corpus and locally-authored documents, every decoded parent is one
+  of the three. If yelixer adds a fourth, that test fails and the catch-all stops being defensive.
+
+⭐ **Chasing the last few percent by contorting inputs would have converted honest defensive code
+into tests that assert the contortion.** Where a branch is unreachable, the useful artifact is a
+test of *why* it is unreachable — which fails if that stops being true.

@@ -10,3 +10,4 @@ yepochs-*.tar
 .elixir_ls/
 /priv/plts/*.plt
 /priv/plts/*.plt.hash
+/cover/
