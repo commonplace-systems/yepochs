@@ -107,3 +107,50 @@ a broken search).
 ⭐ **Operational rule:** when a spec says *"X remains in repo R"*, run one `command grep` against
 R's tree before designing to it. Boundary claims are cheap to check and quietly go stale; **r2's are
 new prose that never survived review in r1, so they carry less warrant, not more.**
+
+---
+
+## §28 conformance status, audited against the spec rather than from memory
+
+r2 expands §28.2 from 15 mandatory fixtures to **26**. `test/conformance_test.exs` names them by
+the spec's own numbering so coverage is auditable; fixtures already owned by a module's suite are
+cross-referenced there rather than duplicated.
+
+| fixtures | state |
+|---|---|
+| 1–6, 8–11, 14, 15, 18, 20, 24, 25 | ✅ covered in the owning module's suite |
+| 7, 12, 13, 16, 17, 21, 22, 23 | ✅ added in `conformance_test.exs` |
+| **19** | ⛔ **NOT satisfied** — see below |
+| **26** | ⛔ **out of scope**, and argued rather than assumed |
+
+### ⛔ Fixture 19 is a real gap and is pinned as one
+
+§28.2(19) wants a re-authored crossing to return **non-identity correspondence spans**. §17 hedges
+it — *"wherever the rebase adapter can prove that newly authored destination items correspond to
+source items"* — and **0.1's adapters can prove none**: they re-author from an observable diff and
+cannot say which destination item answers which source item.
+
+⇒ A test pins the *current* behaviour (`correspondence.spans == []`) with a message telling the next
+reader to update it when that changes. **Omitting the fixture would have let this file argue for
+coverage it does not have**; a passing test that documents the gap cannot.
+
+Consequence, already exercised by fixture 22: an edit that depends on a re-authored one has no
+strict correspondence to use, so it re-authors too. That is what §17 means by *"any remaining
+unmapped dependency simply selects re-authoring again"* — correct, but it means a chain of
+re-authored edits never recovers strict translation until a fresh snapshot establishes one.
+
+### Fixture 26 is out of scope, on the spec's own terms
+
+"Destination admission through its own writer without adding another log writer" is a property of
+the enclosing log protocol. §4 lists multi-writer admission as explicit non-scope and §29 requires
+this package to run no process and own no storage. The test asserts the negative that *is* ours:
+the application declares no callback module and registers no processes.
+
+### §28.1 compatibility fixtures — outstanding
+
+§28.1 requires moving or recreating commonplace's existing fixtures (deterministic snapshotting,
+mixed top-level shared types, derivation-map inversion and composition, origin / right-origin /
+ID-parent translation, mixed source client IDs, late-edit preflight, positional fallback,
+cross-epoch translation inputs). ⚠️ **Not yet done.** Reading them is explicitly not gated, and
+`~/commonplace` has ten relevant test files totalling ~1,430 lines. This is the largest remaining
+piece of §30's acceptance criteria that is actionable without the hold lifting.
