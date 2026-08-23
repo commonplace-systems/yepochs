@@ -78,6 +78,17 @@ defmodule Yepochs.UpdateTest do
       assert :origin in fields or :right_origin in fields
     end
 
+    test "reads yelixer delete ranges as half-open {start, stop}, NOT {clock, length}" do
+      # Pinned because misreading it is silent: the text stays correct while the
+      # translated range covers clocks that were never deleted. yelixer's
+      # DeleteSet moduledoc states the convention; this test holds us to it.
+      base = Updates.base("abcdefgh", 100)
+      {:ok, u} = Update.decode(Updates.delete_delta(base, 200, 2, 3))
+
+      assert [%{field: :delete, ref: {100, 2}, length: 3}] = Update.external_refs(u),
+             "deleting 3 characters must yield a 3-clock range"
+    end
+
     test "reports delete-set coordinates as external references", %{base: base} do
       {:ok, u} = Update.decode(Updates.delete_delta(base, 200, 2, 3))
       deletes = u |> Update.external_refs() |> Enum.filter(&(&1.field == :delete))

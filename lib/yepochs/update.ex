@@ -116,11 +116,15 @@ defmodule Yepochs.Update do
     if owns?(update, ref), do: [], else: [%{field: field, ref: ref, length: 1}]
   end
 
+  # ⚠️ yelixer's DeleteSet stores HALF-OPEN {start, stop} ranges, NOT
+  # {clock, length}. `{2, 5}` means clocks 2, 3, 4 -- three clocks, not five.
+  # Misreading this silently translates the wrong delete range, so it is pinned
+  # by a test rather than left to a comment.
   defp delete_refs(%__MODULE__{delete_set: %DeleteSet{clients: clients}} = update) do
     Enum.flat_map(clients, fn {client, ranges} ->
-      Enum.flat_map(ranges, fn {clock, len} ->
+      Enum.flat_map(ranges, fn {start, stop} ->
         client
-        |> subtract_owned(clock, len, update)
+        |> subtract_owned(start, stop - start, update)
         |> Enum.map(fn {k, l} -> %{field: :delete, ref: {client, k}, length: l} end)
       end)
     end)
