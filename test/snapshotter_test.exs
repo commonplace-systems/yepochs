@@ -323,6 +323,7 @@ defmodule Yepochs.SnapshotterTest do
   end
 
   describe "determinism — §10.4" do
+    # Spec r3 §28.2 fixture 14.
     test "repeated calls on the same decoded state produce byte-identical output" do
       src = source("abcdefgh")
 

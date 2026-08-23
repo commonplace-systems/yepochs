@@ -122,6 +122,7 @@ defmodule Yepochs.BridgeTest do
       assert Bridge.left_ref(b, {17, 4}) == {:ok, {9, 21}}
     end
 
+    # Spec r3 §28.2 fixture 1.
     test "resolves a reference into the MIDDLE of a multi-clock item", %{b: b} do
       assert Bridge.right_ref(b, {9, 23}) == {:ok, {17, 6}}
       assert Bridge.left_ref(b, {17, 6}) == {:ok, {9, 23}}
@@ -202,6 +203,7 @@ defmodule Yepochs.BridgeTest do
       end
     end
 
+    # Spec r3 §28.2 fixture 11.
     test "splits at intermediate boundaries and keeps only fully-mapped coordinates" do
       ab = bridge("A", "B", [span(10, 0, 20, 0, 10)])
       bc = bridge("B", "C", [span(20, 3, 30, 0, 4)])
@@ -281,6 +283,7 @@ defmodule Yepochs.BridgeTest do
       assert left.left_epoch == right.left_epoch and left.right_epoch == right.right_epoch
     end
 
+    # Spec r3 §28.2 fixture 10.
     test "composes a three-bridge path" do
       ab = bridge("A", "B", [span(10, 0, 20, 0, 10)])
       bc = bridge("B", "C", [span(20, 0, 30, 0, 10)])
@@ -325,11 +328,13 @@ defmodule Yepochs.BridgeTest do
       assert [%Receipt{from: :right, to: :left}] = e.receipts
     end
 
+    # Spec r3 §28.2 fixture 8.
     test "accepts an exact duplicate mapping idempotently", %{b: b} do
       {:ok, e} = Bridge.extend(b, delta([span(10, 0, 20, 0, 5)], receipt("r1")))
       assert e.correspondence == b.correspondence
     end
 
+    # Spec r3 §28.2 fixture 24.
     test "accepts an exact duplicate RECEIPT idempotently", %{b: b} do
       d = delta([span(11, 0, 21, 0, 3)], receipt("r1"))
       {:ok, once} = Bridge.extend(b, d)
@@ -338,6 +343,7 @@ defmodule Yepochs.BridgeTest do
       assert length(twice.receipts) == 1
     end
 
+    # Spec r3 §28.2 fixture 25.
     test "REJECTS reuse of one receipt reference for a different crossing result", %{b: b} do
       {:ok, e} = Bridge.extend(b, delta([], receipt("r1", mode: :translated)))
 
@@ -347,6 +353,7 @@ defmodule Yepochs.BridgeTest do
       assert err.details.ref == "r1"
     end
 
+    # Spec r3 §28.2 fixture 9.
     test "rejects an overlap that would give the LEFT side two meanings", %{b: b} do
       assert {:error, %Error{code: :invalid_derivation} = err} =
                Bridge.extend(b, delta([span(10, 2, 99, 99, 2)], receipt("r1")))

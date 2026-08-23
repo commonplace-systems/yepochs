@@ -50,6 +50,7 @@ defmodule Yepochs.PreflightTest do
       for {{100, k}, {500, dk}} <- p.anchors, do: assert(dk == k)
     end
 
+    # Spec r3 §28.2 fixture 2.
     test "translates delete ranges into destination coordinates", %{base: base} do
       u = Updates.delete_delta(base, 200, 2, 3)
       {:ok, p} = Preflight.run(u, full_bridge(), :left, [])
@@ -128,6 +129,7 @@ defmodule Yepochs.PreflightTest do
                Preflight.run(u, partial, :left, [])
     end
 
+    # Spec r3 §28.2 fixture 5.
     test "a PARTIALLY covered delete range still fails — no silent discard", %{base: base} do
       # Deletes clocks 2,3,4; the bridge covers only 2 and 3.
       u = Updates.delete_delta(base, 200, 2, 3)
@@ -160,6 +162,7 @@ defmodule Yepochs.PreflightTest do
   end
 
   describe "identity collision — §15.5" do
+    # Spec r3 §28.2 fixture 6.
     test "rejects an owned interval that means something else at the destination", %{base: base} do
       u = Updates.insert_delta(base, 200, 2, "XY")
       # The destination side already assigns client 200, clocks 0..7 to base

@@ -345,6 +345,7 @@ defmodule Yepochs.TotalityTest do
              inspect(disagreements)
   end
 
+  # Spec r3 §28.2 fixture 27.
   test "the corpus is not degenerate: at least one span is a real remapping" do
     # ⛔ THE GUARD THAT WOULD HAVE CAUGHT THE FIRST VERSION OF THIS SUITE.
     # A single-author document snapshots under its own client id, so every span
@@ -370,6 +371,7 @@ defmodule Yepochs.TotalityTest do
              "translation from raw coordinate pass-through"
   end
 
+  # Spec r3 §28.2 fixture 28.
   test "direction is load-bearing where a non-identity span carries the anchor" do
     # ⭐ Mutation testing said the direction axis was decoration: mislabelling
     # `from:` changed nothing across all 240 cells. The cause was the DATA, not

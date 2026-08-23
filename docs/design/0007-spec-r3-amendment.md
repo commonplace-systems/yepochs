@@ -84,9 +84,19 @@ cells, and it reported 100% green.
 non-degenerate correspondence; **28** requires a mislabelled crossing direction to re-author rather
 than translate through the opposite side of the correspondence.
 
-⚠️ Note that r2 **already** required *"mixed source client IDs"* (§28.1) — the existing requirement
-my corpus violated. Fixture 27 states the reason, so the next reader does not have to rediscover it
-by mutation.
+⚠️ **Correction to my first account of this.** I reported that my degenerate corpus *"violated an
+existing spec requirement and nothing noticed."* Checking rather than repeating it: **the suite does
+enforce §28.1's *"mixed source client IDs"***, in `test/compatibility_test.exs`, with a genuinely
+non-degenerate case — clients 900 and 300, minting under 300, asserting **both** appear on the origin
+side. ⇒ The requirement was enforced; **my new artifact simply did not inherit the discipline.**
+That is a different and less alarming failure than an unenforced clause, and the distinction is
+worth more than the tidier version of the story.
+
+⭐ What the episode does show is a **traceability** gap, and that one is real: of §28.2's 28
+fixtures, every one was covered, but **only 13 could be traced by number.** A requirement whose
+enforcing test cannot be located is not reliably maintained — which is how the discipline failed to
+travel. `test/fixture_coverage_test.exs` now reads §28.2 out of the spec and requires every fixture
+to be claimed by a `fixture N` marker or recorded as unsatisfied with a reason.
 
 ## 6. Conformance after the amendment
 

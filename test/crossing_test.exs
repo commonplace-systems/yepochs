@@ -119,6 +119,7 @@ defmodule Yepochs.CrossingTest do
       end
     end
 
+    # Spec r3 §28.2 fixture 18.
     test "re-authors around an identity collision, which strict translation cannot survive",
          %{source: source, dest: dest} do
       u = Updates.insert_delta(source, 200, 2, "XY")
@@ -166,6 +167,7 @@ defmodule Yepochs.CrossingTest do
                c.bridge_delta.receipt
     end
 
+    # Spec r3 §28.2 fixture 20.
     test "an ABSORBED crossing still returns a receipt, though its correspondence is empty",
          %{source: source} do
       u = Updates.insert_delta(source, 200, 2, "XY")
