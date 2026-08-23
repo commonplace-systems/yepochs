@@ -14,8 +14,31 @@ defmodule Yepochs.Algorithm do
 
   @type t :: %__MODULE__{id: String.t(), version: pos_integer()}
 
-  @doc "Compatibility extraction of the experimental Commonplace snapshotter."
-  def snapshot, do: %__MODULE__{id: "yepochs.snapshot", version: 2}
+  @doc """
+  Deterministic snapshotting with **span-complete** derivations.
+
+  ⛔ **Version 3, not 2 — and the distinction is durable, not cosmetic.** Version
+  2 is the experimental *item-start* derivation algorithm, which covers only the
+  first clock of each replayed item (measured: **1 of 8** on a document written
+  as eight one-character inserts). This build emits clock **spans** covering
+  every emitted clock, which is different mapping semantics.
+
+  Span-complete derivations change persisted snapshot metadata and therefore
+  change content-addressed commit IDs. Assigning them to version 2 would give
+  one durable version tag two meanings — precisely the silent aliasing a version
+  tag exists to prevent.
+  """
+  def snapshot, do: %__MODULE__{id: "yepochs.snapshot", version: 3}
+
+  @doc """
+  The legacy item-start derivation algorithm. **Recognised, not produced.**
+
+  This build cannot emit version 2, so requesting it returns
+  `:incompatible_algorithm` rather than silently serving version 3's different
+  semantics. It is named here so a caller reading a v2 artifact can identify it,
+  and so the version number is never reused.
+  """
+  def snapshot_v2, do: %__MODULE__{id: "yepochs.snapshot", version: 2}
   @doc "Strict identity translation."
   def translate, do: %__MODULE__{id: "yepochs.translate", version: 1}
   @doc "Bidirectional crossing strategy and result contract."
@@ -30,6 +53,16 @@ defmodule Yepochs.Algorithm do
   @doc "Every algorithm version this build supports. Spec §21 requires this be exposed."
   @spec supported() :: [t()]
   def supported, do: [snapshot(), translate(), cross(), rebase(), compose(), extend()]
+
+  @doc """
+  Algorithms this build can identify but MUST NOT produce. Spec ruling 8.4.
+
+  Requesting one is `:incompatible_algorithm`: a durable caller replaying a v2
+  artifact needs to be told this build cannot reproduce it, not handed v3 bytes
+  under a v2 tag.
+  """
+  @spec legacy() :: [t()]
+  def legacy, do: [snapshot_v2()]
 
   @doc """
   Whether this build implements exactly this algorithm and version. Spec §21.

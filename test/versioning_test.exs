@@ -45,7 +45,7 @@ defmodule Yepochs.VersioningTest do
     test "every algorithm this build implements is listed with its version" do
       by_id = Map.new(Algorithm.supported(), &{&1.id, &1.version})
 
-      assert by_id["yepochs.snapshot"] == 2
+      assert by_id["yepochs.snapshot"] == 3
       assert by_id["yepochs.translate"] == 1
       assert by_id["yepochs.cross"] == 1
       assert by_id["yepochs.rebase"] == 1
@@ -54,8 +54,9 @@ defmodule Yepochs.VersioningTest do
     end
 
     test "supports?/1 answers for an exact id and version" do
-      assert Algorithm.supports?(%Algorithm{id: "yepochs.snapshot", version: 2})
-      refute Algorithm.supports?(%Algorithm{id: "yepochs.snapshot", version: 3})
+      assert Algorithm.supports?(%Algorithm{id: "yepochs.snapshot", version: 3})
+      refute Algorithm.supports?(%Algorithm{id: "yepochs.snapshot", version: 4})
+      refute Algorithm.supports?(%Algorithm{id: "yepochs.snapshot", version: 2})
       refute Algorithm.supports?(%Algorithm{id: "yepochs.snapshot", version: 1})
       refute Algorithm.supports?(%Algorithm{id: "yepochs.nonexistent", version: 1})
     end
@@ -64,16 +65,16 @@ defmodule Yepochs.VersioningTest do
   describe "snapshot/2 honours an explicitly requested version" do
     test "accepts the version this build implements", %{doc: doc} do
       assert {:ok, s} =
-               Yepochs.snapshot(doc, algorithm: %Algorithm{id: "yepochs.snapshot", version: 2})
+               Yepochs.snapshot(doc, algorithm: %Algorithm{id: "yepochs.snapshot", version: 3})
 
-      assert s.algorithm.version == 2
+      assert s.algorithm.version == 3
     end
 
     test "⛔ REFUSES a version it does not implement, rather than substituting", %{doc: doc} do
       assert {:error, %Error{code: :incompatible_algorithm, phase: :snapshot} = err} =
-               Yepochs.snapshot(doc, algorithm: %Algorithm{id: "yepochs.snapshot", version: 3})
+               Yepochs.snapshot(doc, algorithm: %Algorithm{id: "yepochs.snapshot", version: 4})
 
-      assert err.details.requested.version == 3
+      assert err.details.requested.version == 4
       assert err.details.supported != []
     end
 

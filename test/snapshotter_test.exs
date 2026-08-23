@@ -157,7 +157,7 @@ defmodule Yepochs.SnapshotterTest do
     end
   end
 
-  describe "algorithm version 2 — §10.3" do
+  describe "algorithm version 3 — §10.3 traversal, ruling 8.4 versioning" do
     test "selects the minimum source client id as the snapshot client id" do
       a = Text.insert(Doc.new(client_id: 700), "t", 0, "abcd")
       {:ok, a} = Encoding.apply_update(Doc.new(client_id: 300), Encoding.encode_update(a))
@@ -175,9 +175,9 @@ defmodule Yepochs.SnapshotterTest do
       assert s.algorithm == Algorithm.snapshot()
     end
 
-    test "stamps snapshot algorithm version 2" do
+    test "stamps snapshot algorithm version 3, not the legacy item-start version 2" do
       {:ok, s} = Snapshotter.snapshot(source("abc"), [])
-      assert s.algorithm == %Algorithm{id: "yepochs.snapshot", version: 2}
+      assert s.algorithm == %Algorithm{id: "yepochs.snapshot", version: 3}
     end
   end
 

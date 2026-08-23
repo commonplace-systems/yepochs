@@ -374,7 +374,7 @@ defmodule Yepochs.BridgeTest do
                  "kind" => "snapshot",
                  "origin" => "left",
                  "derived" => "right",
-                 "producer" => %{"id" => "yepochs.snapshot", "version" => 2}
+                 "producer" => %{"id" => "yepochs.snapshot", "version" => 3}
                },
                "correspondence" => [
                  %{
