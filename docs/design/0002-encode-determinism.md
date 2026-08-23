@@ -80,3 +80,36 @@ apply-order case is 4-vs-4). **Unresolved; do not treat either number as settled
    ⇒ **Tier 2 must document that a content-addressed caller is responsible for the source `Doc`'s
    struct representation, not merely its value** — and that requirement must be stated where
    `snapshot/2` is defined, not only here.
+
+---
+
+## Result 5 — `Encoding.encode_items/2` is the Tier 1 re-encoder, and it satisfies §15.8
+
+The translator must emit a modified item list **without** round-tripping through an integrated
+`Doc` — otherwise it would enter the apply-order regime above. yelixer already has the primitive:
+
+```elixir
+Yelixer.Encoding.encode_items(items, delete_set)
+```
+
+Its docstring was written for exactly this use — *"Translated items' origins point at ids from the
+source namespace — those ids are not in our synthetic store, so the GC-remap lookups miss and return
+the ref unchanged, which is exactly what we want"* — and it records two deliberate determinism
+choices (clients filtered descending by id; `encode_delete_set/1` appended), tagged `CX-w62`.
+
+Measured (`probes/encode_items_determinism.exs`), on a 4-item / 2-client update:
+
+| check | result |
+|---|---|
+| 100 repeated calls on the same input | **1 distinct output** |
+| `decode_update` → `encode_items` == original bytes | **true** |
+| input list reversed / sorted asc / sorted desc | **all byte-identical to canonical** |
+| all four encodings applied to a fresh doc | **same observable text** |
+
+⇒ **§15.8 is satisfiable and the translator does not need to pin item order** — the encoder
+re-derives its own canonical order. This also means Tier 1 never constructs a `Doc` by applying
+updates, so Result 2's divergence regime is out of reach by construction.
+
+⚠️ **Scope of this claim, stated so it is not over-read:** one small update, 4 items, 2 clients.
+The mechanism in the docstring supports the general case, but **Tier 1 must property-test order
+insensitivity over generated item lists** rather than resting on this.
