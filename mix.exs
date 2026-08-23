@@ -33,10 +33,17 @@ defmodule Yepochs.MixProject do
     ]
   end
 
-  # Tier 0 (the identity-space algebra) depends on nothing. Yelixer enters
-  # only with the update codec at Tier 1. See docs/design/0001-build-order.md.
+  # Tier 0 (the identity-space algebra) depends on nothing; Yelixer enters with
+  # the update codec at Tier 1. Spec §2: yepochs MUST depend on Yelixer and
+  # ordinary utility libraries only, and MUST NOT depend on any Commonplace
+  # package. See docs/design/0001-build-order-and-gate.md.
+  #
+  # Pinned to the same ref `commonplace` uses, because §10.4 and §15.10
+  # determinism are stated against a PINNED codec version -- an unpinned codec
+  # would make "the same bytes" a claim about whatever was fetched that day.
   defp deps do
     [
+      {:yelixer, git: "https://github.com/commonplace-systems/yelixer.git", ref: "bc35a0e9"},
       {:stream_data, "~> 1.0", only: [:test]}
     ]
   end

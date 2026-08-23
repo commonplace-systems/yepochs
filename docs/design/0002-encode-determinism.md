@@ -172,3 +172,21 @@ conditional on the caller's `Doc` having a fixed struct representation, and that
 `Doc` assembled in a different arrival order is a *different input*, not a violated guarantee. §10.4
 implies this via "supported struct representation"; **it is not stated as a precondition anywhere,
 and §15.8 says nothing about it at all.**
+
+---
+
+## Re-verified against the PINNED codec (2026-08-23)
+
+⚠️ The measurements above were taken against a local `~/yelixer` checkout at `691a4f4`, which was
+**4 commits behind `origin/main`** — and `bc35a0e9` (origin/main's tip, and the ref `commonplace`
+pins) is *not* an ancestor of it. So the original probe runs measured neither what commonplace uses
+nor the current tip.
+
+`yepochs` now pins `{:yelixer, git: …, ref: "bc35a0e9"}` — the same ref commonplace uses — because
+§10.4 and §15.10 state determinism against a **pinned codec version**, and an unpinned codec makes
+"the same bytes" a claim about whatever was fetched that day.
+
+**Re-run against the pin: every result above reproduces identically.** The 676-pair class
+separation is unchanged in all three protocols (P1/P2/P3), and `encode_items/2` remains
+deterministic, byte-exact on round-trip, and order-insensitive. The four intervening commits (CI,
+path fixes, a fixture-arm change) do not touch the encoder — now measured rather than assumed.
