@@ -296,6 +296,33 @@ that fails if the corpus ever goes degenerate again.
 ⛔ **Whether the sentence is also about §6.6's *definition* of a bridge is not decided here** — that
 would be a spec edit, and this repo does not own the spec.
 
+## Proposed spec edit, NOT applied — an epoch reference's QUESTION is unstated
+
+⛔ **Outside jes's authorisation, and recorded rather than made.** He authorised *"edits that make the
+spec possible"*; this is a clarification, not a satisfiability repair, so it is filed here and left
+for him.
+
+**The gap.** §6.3 says what a Yepoch reference *is* — an opaque, canonical UTF-8 string, non-empty,
+≤1024 bytes, compared byte-for-byte — and lists what it is **not** (a log, a Document UUID, a branch,
+a Merkle commit, a reducer epoch, an observable value). ⚠️ **It never says which QUESTION the
+reference answers.**
+
+⭐ An epoch reference must answer **"which namespace do THESE coordinates belong to."** A *provenance*
+pointer — "which namespace did this descend from" — is a different question, and ⛔ **it satisfies
+every constraint §6.3 imposes.** Non-empty, valid UTF-8, in range, byte-comparable. **Shape equality
+is not validity**, and this is that failure exactly: a field of the right shape answering the wrong
+question passes every check the spec can currently make.
+
+**Measured, not hypothetical.** `commonplace`'s `CrossEpochMerge` stamps `metadata.snapshot_parent`,
+whose *name* reads as provenance and whose *value* is the namespace the commit's coordinates are in.
+⇒ It happens to be the right semantic under a name that argues for the wrong one — reported by
+`commonplace-merkle-crdt`, who checked the source rather than the name. **A future reader reaching
+for it as provenance gets a plausible, wrong answer.**
+
+⇒ **Suggested wording for §6.3, if jes wants it:** *an epoch reference identifies the namespace in
+which a coordinate is to be interpreted. It MUST NOT be a provenance pointer to a namespace a
+history descended from; a bridge's two endpoint references answer that.*
+
 ## Still outstanding after the rulings
 
 1. **The specification revision itself.** §9 of the rulings lists **ten required spec edits**; this
