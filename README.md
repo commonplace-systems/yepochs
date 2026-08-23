@@ -19,7 +19,8 @@ extraction** of commonplace's epoch handling into its own package.
 | error model and resource limits | §22, §23 | ✅ |
 | explicit algorithm-version selection | §21 | ✅ refuses substitution in either direction |
 
-**260 tests and 8 properties, no compile warnings.** Every load-bearing check is
+**268 tests and 12 properties, no compile warnings** — including §28.4 conformance vectors authored
+by **upstream `yjs` 13.6.32**, not by this stack. Every load-bearing check is
 **mutation-tested** — disabled one at a time to confirm the suite reddens. That practice found
 ornamental gates in *every* module it was applied to, and three genuine defects it would otherwise
 have missed. See [`docs/design/`](docs/design/).
