@@ -175,6 +175,47 @@ defmodule Yepochs.EpochBoundaryTest do
                "distinguished by a carried id rather than by inspection"
     end
 
+    test "⛔ the collision is not ambiguity — it is ORDER-DEPENDENT SILENT LOSS" do
+      # ⭐ The evidence belongs on a DESCENDANT, not on the colliding pair. At
+      # the moment of the snapshot the two namespaces are isomorphic and nothing
+      # is lost, so a test on the pair asserts a difference that does not exist
+      # yet and is correctly refutable. The difference first EXISTS one edit
+      # later — and that is where the harm is.
+      base = materialized(Text.insert(Doc.new(client_id: 100), "t", 0, "hello"))
+
+      {:ok, snapshot} = Snapshotter.snapshot(base)
+      {:ok, derived} = Encoding.apply_update(Doc.new(client_id: 0), snapshot.update)
+      assert snapshot.update == Encoding.encode_update(base), "premise: the pair is identical"
+
+      # Each lineage takes its own next edit. Same client id, same next clock —
+      # by construction, because the namespaces coincide.
+      a = Text.insert(replica(base, 100), "t", 5, "AAA")
+      b = Text.insert(replica(derived, 100), "t", 5, "BBB")
+
+      assert BlockStore.state_vector(a.store) == BlockStore.state_vector(b.store),
+             "the two children must occupy the SAME coordinates, or there is no collision"
+
+      # A consumer that believes these are one namespace integrates both.
+      {:ok, forward} = Encoding.apply_update(base, delta(a, base))
+      {:ok, forward} = Encoding.apply_update(forward, delta(b, derived))
+
+      {:ok, reverse} = Encoding.apply_update(base, delta(b, derived))
+      {:ok, reverse} = Encoding.apply_update(reverse, delta(a, base))
+
+      # ⛔ One edit is discarded as an already-seen coordinate. No error, no
+      # conflict, no trace.
+      assert Text.to_string(forward, "t") == "helloAAA"
+      assert Text.to_string(reverse, "t") == "helloBBB"
+
+      # ⭐⭐ And the loser is chosen by ARRIVAL ORDER. Two replicas given the
+      # same two updates in different orders converge to DIFFERENT documents and
+      # stay there — the one property a CRDT exists to guarantee, broken not by
+      # a bug in the merge but by interpreting coordinates without their Yepoch.
+      refute Text.to_string(forward, "t") == Text.to_string(reverse, "t"),
+             "⛔ if these agreed, the collision would be benign and invariant 1 would be " <>
+               "a precaution rather than a requirement"
+    end
+
     test "an ordinary fork and a re-authoring differ by IDENTITY RETENTION, not by name" do
       # ⭐ Where the source is multi-author, the difference IS visible — a fork
       # retains the base's identities, a re-authoring does not. Stated with the

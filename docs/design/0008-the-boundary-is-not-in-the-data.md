@@ -36,6 +36,35 @@ is **the only** property-keyed instrument that exists.
 different content** as soon as either diverges. The test asserts that collision, because it is
 invariant 1's exact failure — a raw `{client_id, clock}` interpreted without its Yepoch.
 
+## What the collision actually costs — measured on a DESCENDANT
+
+⭐ **The evidence belongs one edit later than the collision, and moving it there made the result
+worse than either `commonplace-merkle-crdt` or I had stated.**
+
+At the moment of a single-author snapshot the two namespaces are **isomorphic** — same coordinates,
+same content, same bytes. ⇒ **Nothing is lost yet**, so a test on the colliding pair asserts a
+difference that does not exist and is correctly refutable. The difference first *exists* when either
+lineage takes its next edit:
+
+```
+child A   "helloAAA"   state vector %{100 => 8}
+child B   "helloBBB"   state vector %{100 => 8}     <- SAME coordinates, by construction
+
+integrate A then B  ->  "helloAAA"
+integrate B then A  ->  "helloBBB"
+```
+
+⛔ **It is not ambiguity. It is silent data loss** — Yjs deduplicates by `{client, clock}`, so the
+second edit is discarded as already-seen. **No error, no conflict, no trace.**
+
+⛔⛔ **And the loser is chosen by ARRIVAL ORDER.** Two replicas handed the same two updates in
+different orders converge to **different documents and stay there** — ⇒ **the one property a CRDT
+exists to guarantee, broken not by a defect in the merge but by interpreting coordinates without
+their Yepoch.** That is invariant 1 stated as a consequence rather than as a rule.
+
+⚠️ Independently reproduced: `commonplace-merkle-crdt` measured the byte-identity result at the Yjs
+level, without my minter on the path. The order-dependence is the half this repo added.
+
 ## The hinge this protects
 
 Spec §6.3: *"Ordinary edits within a history do not create new Yepochs. Deterministic re-authoring
