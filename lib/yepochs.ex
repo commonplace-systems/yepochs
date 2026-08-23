@@ -98,9 +98,11 @@ defmodule Yepochs do
   @spec cross(Bridge.t(), binary(), Doc.t(), Doc.t(), keyword()) ::
           {:ok, Crossing.t()} | {:error, Error.t()}
   def cross(%Bridge{} = bridge, update, %Doc{} = source_before, %Doc{} = destination, opts) do
-    with {:ok, from} <- fetch_direction(opts),
+    with {:ok, _algorithm} <- Algorithm.resolve(opts, Algorithm.cross(), :cross),
+         {:ok, from} <- fetch_direction(opts),
          {:ok, ref} <- fetch_receipt_ref(opts),
-         :ok <- require_author(opts) do
+         :ok <- require_author(opts),
+         :ok <- verify_endpoint_state(source_before, update) do
       attempt_strict(bridge, update, source_before, destination, from, ref, opts)
     end
   end
@@ -152,6 +154,30 @@ defmodule Yepochs do
       # even then.
       mode = if result.outcome == :absorbed, do: :absorbed, else: :reauthored
       build(bridge, from, ref, result.update, mode, result.outcome, empty)
+    end
+  end
+
+  # §15.1: `source_before` MUST be the exact source state the update was authored
+  # against. That is checkable rather than assumed: if applying the update leaves
+  # entries in the doc's PENDING buffer, its causal dependencies were not
+  # satisfied by this state, so it is not the one the edit was authored against.
+  #
+  # ⛔ Without this the crossing would re-author from a `before`/`edited` pair
+  # that differ by nothing, silently producing an absorbed no-op for a real edit.
+  defp verify_endpoint_state(%Doc{} = source_before, update) do
+    case Encoding.apply_update(source_before, update) do
+      {:ok, %Doc{pending: []}} ->
+        :ok
+
+      {:ok, %Doc{pending: pending}} ->
+        {:error,
+         Error.new(:missing_endpoint_state, :cross,
+           details: %{pending: length(pending)},
+           path: [:source_before]
+         )}
+
+      _ ->
+        {:error, Error.new(:malformed_update, :cross)}
     end
   end
 

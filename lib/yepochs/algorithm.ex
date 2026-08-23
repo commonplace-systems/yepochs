@@ -31,6 +31,46 @@ defmodule Yepochs.Algorithm do
   @spec supported() :: [t()]
   def supported, do: [snapshot(), translate(), cross(), rebase(), compose(), extend()]
 
+  @doc """
+  Whether this build implements exactly this algorithm and version. Spec §21.
+
+  ⛔ Version equality is exact in **both** directions. A newer build must not
+  serve a request for an older version either: an old durable artifact replayed
+  under newer rules would produce different bytes under the same version tag,
+  which is the silent aliasing the tag exists to prevent.
+  """
+  @spec supports?(t()) :: boolean()
+  def supports?(%__MODULE__{} = requested), do: requested in supported()
+
+  @doc """
+  Resolves a caller's requested algorithm against `default`, or refuses.
+
+  §21: a durable caller MUST select a version explicitly and the library MUST
+  NOT silently substitute a newer one.
+  """
+  @spec resolve(keyword(), t(), atom()) :: {:ok, t()} | {:error, Yepochs.Error.t()}
+  def resolve(opts, %__MODULE__{} = default, phase) do
+    case Keyword.get(opts, :algorithm) do
+      nil ->
+        {:ok, default}
+
+      %__MODULE__{id: id} = requested when id == :erlang.map_get(:id, default) ->
+        if supports?(requested),
+          do: {:ok, requested},
+          else: incompatible(requested, phase)
+
+      other ->
+        incompatible(other, phase)
+    end
+  end
+
+  defp incompatible(requested, phase) do
+    {:error,
+     Yepochs.Error.new(:incompatible_algorithm, phase,
+       details: %{requested: requested, supported: supported()}
+     )}
+  end
+
   @spec to_map(t()) :: map()
   def to_map(%__MODULE__{} = a), do: %{"id" => a.id, "version" => a.version}
 

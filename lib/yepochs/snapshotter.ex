@@ -46,12 +46,13 @@ defmodule Yepochs.Snapshotter do
   alias Yepochs.Span
 
   @spec snapshot(Doc.t(), keyword()) :: {:ok, Snapshot.t()} | {:error, Error.t()}
-  def snapshot(%Doc{} = source, _opts \\ []) do
-    with deterministic = %{source | client_id: deterministic_client_id(source)},
+  def snapshot(%Doc{} = source, opts \\ []) do
+    with {:ok, algorithm} <- Algorithm.resolve(opts, Algorithm.snapshot(), :snapshot),
+         deterministic = %{source | client_id: deterministic_client_id(source)},
          {:ok, update} <- reauthor(deterministic),
          {:ok, rebuilt} <- decode_rebuilt(update),
          {:ok, derivation} <- derive(deterministic, rebuilt) do
-      {:ok, %Snapshot{update: update, derivation: derivation, algorithm: Algorithm.snapshot()}}
+      {:ok, %Snapshot{update: update, derivation: derivation, algorithm: algorithm}}
     end
   end
 
