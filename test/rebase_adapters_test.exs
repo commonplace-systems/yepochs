@@ -210,3 +210,114 @@ defmodule Yepochs.RebaseAdaptersTest do
     end
   end
 end
+
+defmodule Yepochs.XmlRebaseTest do
+  @moduledoc """
+  §19.2 names Y.XML as an adapter target. Measured first: of the XML shapes,
+  only **XMLText** and **element attributes** survive the snapshot replay at all
+  — an element's children are dropped by it, so `Yepochs.Snapshotter` refuses
+  such a document (§10.2). ⇒ An adapter is only meaningful for the surface that
+  can hold a bridge, and these tests establish which of that surface the
+  existing plane dispatch already covers.
+  """
+  use ExUnit.Case, async: true
+
+  alias Yelixer.Doc
+  alias Yelixer.Encoding
+  alias Yelixer.Types.XMLElement
+  alias Yelixer.Types.XMLText
+  alias Yepochs.Error
+  alias Yepochs.Rebase
+
+  defp mat(%Doc{} = d) do
+    {:ok, m} = Encoding.apply_update(Doc.new(client_id: d.client_id), Encoding.encode_update(d))
+    m
+  end
+
+  defp reauthor(b, e, t), do: Rebase.rebase(b, e, t, author: 9000)
+
+  defp applied(%Doc{} = target, %{update: <<>>}), do: target
+
+  defp applied(%Doc{} = target, %{update: u}) do
+    {:ok, d} = Encoding.apply_update(target, u)
+    d
+  end
+
+  describe "XMLText crosses on the text plane" do
+    test "an insertion is re-authored at the destination" do
+      before = mat(XMLText.insert(Doc.new(client_id: 100), "xt", 0, "hello"))
+      edited = mat(XMLText.insert(before, "xt", 5, " world"))
+      target = mat(XMLText.insert(Doc.new(client_id: 500), "xt", 0, "hello"))
+
+      assert {:ok, r} = reauthor(before, edited, target)
+      assert r.outcome == :applied
+      assert XMLText.to_string(applied(target, r), "xt") == "hello world"
+    end
+
+    test "a deletion is re-authored at the destination" do
+      before = mat(XMLText.insert(Doc.new(client_id: 100), "xt", 0, "abcdef"))
+      edited = mat(XMLText.delete(before, "xt", 2, 2))
+      target = mat(XMLText.insert(Doc.new(client_id: 500), "xt", 0, "abcdef"))
+
+      assert {:ok, r} = reauthor(before, edited, target)
+      assert XMLText.to_string(applied(target, r), "xt") == "abef"
+    end
+  end
+
+  describe "element attributes cross on the map plane" do
+    defp element_with(attrs, client) do
+      d = XMLElement.new_element(Doc.new(client_id: client), "el", "div")
+      mat(Enum.reduce(attrs, d, fn {k, v}, acc -> XMLElement.set_attribute(acc, "el", k, v) end))
+    end
+
+    test "a new attribute is carried across" do
+      before = element_with([{"class", "big"}], 100)
+      edited = mat(XMLElement.set_attribute(before, "el", "id", "x1"))
+      target = element_with([{"class", "big"}], 500)
+
+      assert {:ok, r} = reauthor(before, edited, target)
+      out = applied(target, r)
+      assert XMLElement.get_attribute(out, "el", "id") == "x1"
+      assert XMLElement.get_attribute(out, "el", "class") == "big"
+    end
+
+    test "a changed attribute value is carried across" do
+      before = element_with([{"class", "big"}], 100)
+      edited = mat(XMLElement.set_attribute(before, "el", "class", "small"))
+      target = element_with([{"class", "big"}], 500)
+
+      assert {:ok, r} = reauthor(before, edited, target)
+      assert XMLElement.get_attribute(applied(target, r), "el", "class") == "small"
+    end
+
+    test "a deleted attribute is carried across" do
+      before = element_with([{"class", "big"}, {"id", "x1"}], 100)
+      edited = mat(XMLElement.delete_attribute(before, "el", "id"))
+      target = element_with([{"class", "big"}, {"id", "x1"}], 500)
+
+      assert {:ok, r} = reauthor(before, edited, target)
+      out = applied(target, r)
+      assert XMLElement.get_attribute(out, "el", "id") == nil
+      assert XMLElement.get_attribute(out, "el", "class") == "big"
+    end
+
+    test "an unchanged element is absorbed" do
+      before = element_with([{"class", "big"}], 100)
+      target = element_with([{"class", "big"}], 500)
+
+      assert {:ok, r} = reauthor(before, before, target)
+      assert r.outcome == :absorbed
+    end
+  end
+
+  describe "⛔ element CHILDREN are out of reach, and the boundary is asserted" do
+    test "a document with element children cannot be snapshotted, so it can hold no bridge" do
+      d = XMLElement.new_element(Doc.new(client_id: 100), "el", "div")
+      src = mat(XMLElement.insert_child(d, "el", 0, {:element, "span"}))
+
+      assert XMLElement.child_count(src, "el") == 1
+
+      assert {:error, %Error{code: :unsupported_content}} = Yepochs.Snapshotter.snapshot(src, [])
+    end
+  end
+end

@@ -15,15 +15,18 @@ extraction** of commonplace's epoch handling into its own package.
 | strict preflight and translation, both directions | §15.3–§16 | ✅ |
 | bilateral crossing — translated / re-authored / absorbed | §15.1, §15.2 | ✅ |
 | strict path translation | §18 | ✅ |
-| positional re-authoring | §19 | ✅ Y.Text, Y.Map and Y.Array adapters; XML refused, not flattened |
+| positional re-authoring | §19 | ✅ Y.Text, Y.Map, Y.Array — and the reachable Y.XML surface |
 | error model and resource limits | §22, §23 | ✅ |
 
-**204 tests and 8 properties, no compile warnings.** Every load-bearing check is
+**240 tests and 8 properties, no compile warnings.** Every load-bearing check is
 **mutation-tested** — disabled one at a time to confirm the suite reddens. That practice found
 ornamental gates in *every* module it was applied to, and three genuine defects it would otherwise
 have missed. See [`docs/design/`](docs/design/).
 
-Not yet built: the Y.XML rebase adapter (§19.2) and the conformance-fixture corpus of §28.
+⛔ **Two known gaps, both recorded as failing-by-design tests rather than omitted:** §28.2 fixture 19
+(a re-authored crossing returning non-identity correspondence spans — 0.1's adapters can prove none),
+and §30 criterion 14 (commonplace consuming the package), which is gated and not this repo's to
+satisfy.
 
 ## What would move here — measured 2026-08-23, not assumed
 

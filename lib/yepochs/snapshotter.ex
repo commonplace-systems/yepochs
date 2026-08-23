@@ -131,16 +131,23 @@ defmodule Yepochs.Snapshotter do
     end
   end
 
-  # Every live clock the store actually holds under a real named type,
-  # independent of what the type registry lists.
+  # Every live clock the store actually holds under ANY named parent.
+  #
+  # ⛔ Synthetic names are deliberately NOT excluded here, even though the
+  # traversal skips them. An XML element's children live under `name::children`,
+  # and the replay does not re-author them -- measured: an element with one child
+  # snapshots to an element with none, attributes intact. Excluding those names
+  # from the reference count made that loss invisible to this very check, which
+  # then reported success on a snapshot that had dropped content.
+  #
+  # Counting them means such a document is REFUSED with `:unsupported_content`,
+  # which is what §10.2 requires: it MUST NOT silently omit, stringify, or
+  # flatten content it cannot preserve.
   defp observable_clock_count(%Doc{store: store}) do
     store
     |> BlockStore.all_items()
     |> Enum.reject(& &1.deleted)
-    |> Enum.filter(fn
-      %{parent: {:named, name}} -> not synthetic?(name)
-      _ -> false
-    end)
+    |> Enum.filter(&match?({:named, _}, &1.parent))
     |> Enum.map(& &1.length)
     |> Enum.sum()
   end

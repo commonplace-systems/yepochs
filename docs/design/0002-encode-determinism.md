@@ -190,3 +190,39 @@ nor the current tip.
 separation is unchanged in all three protocols (P1/P2/P3), and `encode_items/2` remains
 deterministic, byte-exact on round-trip, and order-insensitive. The four intervening commits (CI,
 path fixes, a fixture-arm change) do not touch the encoder — now measured rather than assumed.
+
+---
+
+## Which XML shapes can cross at all (measured 2026-08-23)
+
+§19.2 names Y.XML as an adapter target. Before writing one, measure what the snapshot path can
+carry — an adapter is only meaningful for content that can hold a bridge.
+
+| shape | `nested_subtype_names` | yelixer snapshot | verdict |
+|---|---:|---|---|
+| `XMLText` | 0 | ok, 16B, dm=1 | ✅ crosses on the **text** plane |
+| element, no children | 0 | ok, 2B, dm=0 | ✅ nothing to carry |
+| element + attributes | 0 | ok, 22B, dm=1 | ✅ crosses on the **map** plane |
+| **element + child** | **0** | **ok, 2B, dm=0** | ⛔ **child silently dropped** |
+
+⭐ **No dedicated adapter was needed.** `XMLText` is string content on the sequence plane and
+attributes are `parent_sub` items on the map plane, so the existing plane dispatch already carries
+both — confirmed by tests, and by mutation (disabling the map plane reddens 8, the text plane 4).
+**The measurement replaced the feature.**
+
+## ⛔ And it found a hole in my own §10.2 guard
+
+An element's children live under a **synthetic** name (`el::children`), and the replay does not
+re-author them: an element with one child snapshots to an element with none, attributes intact, no
+error. ⚠️ **`nested_subtype_names/1` returns 0 for this**, so yelixer's own guard does not fire
+either.
+
+My post-condition missed it because `observable_clock_count/1` *excluded synthetic names* — the
+reference count skipped exactly the content that was being lost, so the check compared a number
+against itself and reported success. ⇒ Fixed: the count now includes every live item under any
+named parent, so such a document is refused with `:unsupported_content` (`source_clocks: 1,
+derived_clocks: 0`). Reverting the fix reddens the suite.
+
+**This is the same defect class as the registry-derived count it replaced** — a guard whose
+reference value is computed by the same rule as the thing it is guarding cannot detect a fault in
+that rule. Twice now in one function.

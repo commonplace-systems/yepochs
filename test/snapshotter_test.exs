@@ -120,6 +120,29 @@ defmodule Yepochs.SnapshotterTest do
       assert err.details.derived_clocks == 0
     end
 
+    test "⛔ refuses an XML element with CHILDREN, which the replay silently drops" do
+      # Measured: the replay does not re-author `name::children`, so an element
+      # with one child snapshots to an element with none -- attributes intact,
+      # no error. §10.2 forbids silently omitting it.
+      d = Yelixer.Types.XMLElement.new_element(Doc.new(client_id: 100), "el", "div")
+      d = Yelixer.Types.XMLElement.insert_child(d, "el", 0, {:element, "span"})
+      src = materialized(Yelixer.Types.XMLElement.set_attribute(d, "el", "class", "big"))
+
+      assert Yelixer.Types.XMLElement.child_count(src, "el") == 1
+
+      assert {:error, %Error{code: :unsupported_content, phase: :snapshot}} =
+               Snapshotter.snapshot(src, [])
+    end
+
+    test "an XML element with attributes but NO children still snapshots" do
+      d = Yelixer.Types.XMLElement.new_element(Doc.new(client_id: 100), "el", "div")
+      src = materialized(Yelixer.Types.XMLElement.set_attribute(d, "el", "class", "big"))
+
+      assert {:ok, s} = Snapshotter.snapshot(src, [])
+      {:ok, out} = Encoding.apply_update(Doc.new(client_id: 1), s.update)
+      assert Yelixer.Types.XMLElement.get_attributes(out, "el") == %{"class" => "big"}
+    end
+
     test "refuses content it cannot faithfully re-author, rather than flattening it" do
       nested = Doc.new(client_id: 100) |> Text.insert("t", 0, "abc")
 
