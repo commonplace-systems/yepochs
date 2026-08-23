@@ -88,13 +88,23 @@ defmodule Yepochs.Span do
 
   defp invalid(field), do: {:error, Error.new(:invalid_derivation, :derivation, path: [field])}
 
+  # ⚠️ The `is_integer/1` guards are not decoration. `%__MODULE__{} = s` matches
+  # ANY struct of this module — `@type t` constrains documentation, not runtime —
+  # so without them the success typing widens to `number()` and the
+  # `non_neg_integer()` contract is an assertion the code cannot keep. Dialyzer
+  # named both as `missing_range`. A hand-built span carrying a float now raises
+  # here instead of silently producing a float clock.
   @doc "Exclusive end of the left interval. Spec §6.2."
   @spec left_end(t()) :: non_neg_integer()
-  def left_end(%__MODULE__{} = s), do: s.left_clock + s.length
+  def left_end(%__MODULE__{left_clock: clock, length: len})
+      when is_integer(clock) and is_integer(len),
+      do: clock + len
 
   @doc "Exclusive end of the right interval. Spec §6.2."
   @spec right_end(t()) :: non_neg_integer()
-  def right_end(%__MODULE__{} = s), do: s.right_clock + s.length
+  def right_end(%__MODULE__{right_clock: clock, length: len})
+      when is_integer(clock) and is_integer(len),
+      do: clock + len
 
   @doc """
   Canonical ordering key. r2 §9 sorts LEFT-first: left client, left clock, right

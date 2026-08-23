@@ -8,11 +8,19 @@ defmodule Yepochs.MixProject do
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
       elixirc_paths: elixirc_paths(Mix.env()),
+      aliases: [
+        check: ["format --check-formatted", "compile --warnings-as-errors", "test", "dialyzer"]
+      ],
       deps: deps(),
       description:
         "Yjs identity-space algebra: Yepochs, derivations, bridges, and strict update translation.",
       package: package(),
-      source_url: "https://github.com/commonplace-systems/yepochs"
+      source_url: "https://github.com/commonplace-systems/yepochs",
+      dialyzer: [
+        plt_local_path: "priv/plts",
+        plt_core_path: "priv/plts",
+        flags: [:error_handling, :extra_return, :missing_return, :unmatched_returns]
+      ]
     ]
   end
 
@@ -44,7 +52,8 @@ defmodule Yepochs.MixProject do
   defp deps do
     [
       {:yelixer, git: "https://github.com/commonplace-systems/yelixer.git", ref: "bc35a0e9"},
-      {:stream_data, "~> 1.0", only: [:test]}
+      {:stream_data, "~> 1.0", only: [:test]},
+      {:dialyxir, "~> 1.4", only: [:dev], runtime: false}
     ]
   end
 end
