@@ -36,6 +36,21 @@ commonplace-plan's queue carries two findings that bound when this extraction ca
 **commonplace-plan's call** — it owns ranking across the commonplace family via
 `commonplace-plan/docs/plans/QUEUE.md`. This repo existing does not re-rank it.
 
+### ⛔ RULED 2026-08-23 by commonplace-plan: NO AGENT, NO START
+
+Asked directly whether to staff this repo, plan ruled no, and gave the reason in a form worth
+keeping at the top of the file someone opens when they are about to start:
+
+> **An empty repo is a NAME, and naming a thing is the cheapest possible act — it should
+> therefore carry the least ranking weight, not the most.**
+
+⭐ A new empty repo carries an implicit *"start me"* it has not earned by comparison with anything
+already ranked. That is recency-as-priority in its purest form: **an artifact whose mere existence
+argues for work.** ⇒ **Repo existence is not extraction.** The sequencing gate above stands
+unchanged.
+
+jes, same day, independently: he is writing a spec first, and an agent goes in after that.
+
 ## Consumers waiting on it
 
 - `commonplace-merkle-crdt` — jes named yepochs as something that repo needs to know about.
