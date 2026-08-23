@@ -3,9 +3,12 @@ defmodule Yepochs do
   Yjs identity-space algebra: Yepochs, deterministic snapshots, derivations,
   bilateral bridges, crossings, strict translation, and positional re-authoring.
 
-  Spec: `docs/proposals/2026-08-23-yepochs-spec-r2.md` (sha256 `8765bb15…`).
-  ⚠️ Two revisions exist and are indistinguishable by header — tell them apart
-  by hash.
+  Spec: `docs/proposals/2026-08-23-yepochs-spec-r3.md` (sha256 `3f43be13…`),
+  a satisfiability amendment to r2 authorised by jes and recorded in
+  `docs/design/0007-spec-r3-amendment.md`. r2 is retained byte-identical.
+
+  ⚠️ r1 and r2 are indistinguishable by header and must be told apart by hash;
+  r3 carries `Version: 0.1-draft-r3` so that trap stops here.
 
   This library owns Yjs identity-space algebra. It does **not** own Commonplace
   logs, Merkle commits, branches, signatures, admission policy, or document

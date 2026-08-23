@@ -4,8 +4,10 @@
 
 ## The one-paragraph version
 
-`yepochs` implements spec **r2** (`docs/proposals/2026-08-23-yepochs-spec-r2.md`, sha256
-`8765bb15…`) — ⚠️ **r1 and r2 are indistinguishable by header; tell them apart by hash.** The
+`yepochs` implements spec **r3** (`docs/proposals/2026-08-23-yepochs-spec-r3.md`, sha256
+`3f43be13…`), the satisfiability amendment recorded in `0007`; r2 is retained byte-identical at
+sha256 `8765bb15…`. ⚠️ **r1 and r2 are indistinguishable by header; tell them apart by hash** — r3
+carries `Version: 0.1-draft-r3`. The
 library is complete against §6–§24 and has coverage for §28.1–§28.4. It depends on **yelixer pinned
 at `bc35a0e9`** — the same ref `commonplace` pins — and on nothing else at runtime.
 

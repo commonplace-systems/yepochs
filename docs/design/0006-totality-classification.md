@@ -190,9 +190,17 @@ the exact degeneracy that made the first version of this audit vacuous.
 lists match the builder lists — because **a corpus that got smaller looks exactly like a corpus that
 passed.**
 
-## 6. What this does NOT settle
+## 6. Settled after the fact: the spec was amended
 
-⛔ **Whether jes's sentence is about §6.6's definition of a bridge itself** — i.e. whether the spec
-should weaken "a monotonically growing correspondence" — **is his to say, and is not decided here.**
-This document classifies what the implementation can and cannot do. If the definition is to change,
-that is a spec edit, and this repo does not own the spec.
+⭐ **jes answered: *"oh spec edit is allowed to make spec possible."*** ⇒ Spec **r3** now states the
+Bridge contract conditionally on a bridge existing, defines the supported data model and
+bridgeability (§6.11), and records the tombstone case as impossible **by construction** rather than
+unpromised. `docs/design/0007-spec-r3-amendment.md` carries the authorisation, both hashes, and the
+six edits.
+
+⇒ **The 260 cells above did not change; their status did.** Fixture 19 and the §17 latch are
+consequences of §10.5 rather than exceptions to it, and this library's behaviour is **conforming
+rather than tolerated**.
+
+⚠️ The authorisation was narrow — *edits that make the spec possible*. The remaining spec edits in
+§9 of the rulings are not covered by it and stay open.

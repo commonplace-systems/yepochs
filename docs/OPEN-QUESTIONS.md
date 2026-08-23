@@ -300,6 +300,13 @@ would be a spec edit, and this repo does not own the spec.
 
 1. **The specification revision itself.** §9 of the rulings lists **ten required spec edits**; this
    repo tracks them but does not own the spec.
+
+   ⭐ **Partially overtaken.** jes: *"oh spec edit is allowed to make spec possible"* — a narrow
+   authorisation to remove an impossibility, not a general licence. **r3 is filed**
+   (`docs/proposals/2026-08-23-yepochs-spec-r3.md`), r2 retained byte-identical, and the six edits
+   with their hashes and authorisation are recorded in `docs/design/0007-spec-r3-amendment.md`.
+   ⚠️ The other spec edits in §9 of the rulings are **not** covered by that authorisation and
+   remain open.
 2. **The `commonplace-plan` integration milestone** (ruling 5) — not this repo's to satisfy.
 
 ⇒ **Neither is actionable from this repo.** Generating cross-language vectors *was*, and is done:
