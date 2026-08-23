@@ -174,3 +174,51 @@ character check is the one that means something.
 against the full suite. That is fine — a subset suite need not catch everything — but it is only
 fine because it was **checked**: "my new tests pass" and "my new tests would notice" are different
 claims, and the second is the one worth making.
+
+---
+
+## §22 / §29 audit — what an error-code census and a layout diff turned up
+
+**Method:** enumerate every code §22 defines, count where each is *constructed*, and diff the actual
+module tree against §29's suggested layout. Both are cheap and both found real work.
+
+⚠️ **The census's own trap, recorded because it nearly produced phantom findings.** Four codes showed
+**zero literal constructions**. Two were genuine gaps (§21, §15.1, since fixed). The other two —
+`:missing_anchor`, `:missing_operation_target` — are raised **through a variable**
+(`Error.new(first.code, …)`) and were fully implemented and tested. ⇒ ***A grep for "where is X
+built" finds only the places X is built BY NAME. Indirection is invisible to it, and the absence it
+reports is indistinguishable from a real gap.*** The same applied to `:invalid_epoch_ref`: one
+literal construction, six call sites reaching it through `epoch_error/1`.
+
+**Codes with few constructions turned out to mean two different things, and the difference is only
+visible by reading:**
+
+| code | one construction, but… |
+|---|---|
+| `:invalid_epoch_ref` | six paths reach it — indirection, **not** a gap. But two branches (invalid UTF-8, non-binary input) had **no test**; now they do. |
+| `:unsupported_crossing_content` | reachable only when a plane **changes kind** between `before` and `edited` — a path with no test; now covered. |
+
+### §29 layout diff
+
+`lib/` matches §29 exactly, with one addition (`update.ex`, the decoded-update inventory) and **one
+omission that mattered**: §29 lists `rebase/adapter.ex`, and §19.2 names
+`Yepochs.Rebase.Adapter` as *the* mechanism by which an application supplies its own semantics.
+
+⛔ **It did not exist, so that extension point was closed** — an application with a schema the three
+Yjs planes cannot express had no way in, and the only alternatives were patching this library or
+depending on it in the wrong direction. Now implemented: caller adapters are consulted **before** the
+built-in planes, may deliberately override one for a type they own, and their errors propagate rather
+than falling through to a generic diff that would discard exactly the knowledge the adapter exists to
+apply.
+
+⚠️ **Still divergent from §29, deliberately:** the built-in adapters live in `rebase.ex` rather than
+in `rebase/{text,map,array,xml}.ex`. §29 is a *suggested* layout and §24 says the module split may
+change; splitting three cohesive plane-diffs across four files would spread one dispatch decision
+over five. **Recorded as a choice rather than an oversight** — the behaviour §19.2 actually requires
+is present.
+
+`test/` differs more: §29 suggests a `fixtures/` corpus of stored artifacts, and these tests build
+their documents programmatically instead. ⚠️ **That is a real gap for cross-language conformance**
+(§28.4 wants vectors applicable by both Yelixer and upstream Yjs, recording the versions that
+generated them) — programmatic construction cannot pin bytes produced by a *different*
+implementation.

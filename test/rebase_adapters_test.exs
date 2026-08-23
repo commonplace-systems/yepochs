@@ -203,6 +203,22 @@ defmodule Yepochs.RebaseAdaptersTest do
       assert err.details.removed == ["y"]
     end
 
+    test "refuses a plane that CHANGES KIND between before and edited" do
+      # A named type whose sequence plane holds text in `before` and array
+      # values in `edited` is outside what any single positional adapter can
+      # deterministically apply. §19.2's rule is refuse, not flatten.
+      before = mat(Text.insert(Doc.new(client_id: 100), "p", 0, "abc"))
+      edited = mat(Yelixer.Types.Array.insert(Doc.new(client_id: 100), "p", 0, ["x", "y"]))
+      target = mat(Text.insert(Doc.new(client_id: 500), "p", 0, "abc"))
+
+      assert {:error, %Error{code: :unsupported_crossing_content, phase: :rebase} = err} =
+               reauthor(before, edited, target)
+
+      assert err.details.type == "p"
+      assert err.details.before == :text
+      assert err.details.after == :array
+    end
+
     test "requires an explicit author id" do
       before = mat(Text.insert(Doc.new(client_id: 100), "t", 0, "ab"))
       edited = mat(Text.insert(before, "t", 2, "c"))

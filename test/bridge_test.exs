@@ -84,6 +84,21 @@ defmodule Yepochs.BridgeTest do
                Bridge.attach(deriv([]), "a", String.duplicate("あ", 512), Algorithm.snapshot())
     end
 
+    test "rejects an epoch reference that is not valid UTF-8" do
+      # §6.3 requires a canonical UTF-8 string. Invalid bytes are refused rather
+      # than stored and compared byte-for-byte as if they were text.
+      assert {:error, %Error{code: :invalid_epoch_ref}} =
+               Bridge.attach(deriv([]), "a", <<0xFF, 0xFE, 0xFD>>, Algorithm.snapshot())
+    end
+
+    test "rejects a non-binary epoch reference" do
+      for bad <- [nil, 42, :atom, ["a"]] do
+        assert {:error, %Error{code: :invalid_epoch_ref}} =
+                 Bridge.attach(deriv([]), "a", bad, Algorithm.snapshot()),
+               "expected #{inspect(bad)} to be refused as an epoch reference"
+      end
+    end
+
     test "rejects equal endpoints" do
       assert {:error, %Error{code: :invalid_epoch_ref}} =
                Bridge.attach(deriv([]), "same", "same", Algorithm.snapshot())

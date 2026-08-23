@@ -17,7 +17,10 @@ defmodule Yepochs.Rebase do
 
   ## Coverage in 0.1
 
-  Adapters for **Y.Text**, **Y.Map** and **Y.Array**. A named type has two
+  Adapters for **Y.Text**, **Y.Map** and **Y.Array**, plus the
+  `Yepochs.Rebase.Adapter` behaviour so an application can supply its own for a
+  schema these planes cannot express (§19.2). Caller adapters are consulted
+  first and can deliberately override a built-in for a type they own. A named type has two
   storage planes and both are diffed; the sequence plane is classified by the
   content it holds rather than by the type registry.
 
@@ -55,7 +58,7 @@ defmodule Yepochs.Rebase do
   def rebase(%Doc{} = before, %Doc{} = edited, %Doc{} = target, opts) do
     with {:ok, author} <- fetch_author(opts) do
       names = Enum.sort(Enum.uniq(type_names(before) ++ type_names(edited)))
-      apply_planes(names, before, edited, %{target | client_id: author}, target)
+      apply_planes(names, before, edited, %{target | client_id: author}, target, opts)
     end
   end
 
@@ -87,9 +90,9 @@ defmodule Yepochs.Rebase do
       String.ends_with?(name, "::children")
   end
 
-  defp apply_planes(names, before, edited, doc, target) do
+  defp apply_planes(names, before, edited, doc, target, opts) do
     Enum.reduce_while(names, {:ok, doc, false}, fn name, {:ok, doc, changed?} ->
-      case apply_type(name, before, edited, doc) do
+      case apply_type(name, before, edited, doc, opts) do
         {:ok, doc, c} -> {:cont, {:ok, doc, changed? or c}}
         {:error, _} = error -> {:halt, error}
       end
@@ -111,11 +114,26 @@ defmodule Yepochs.Rebase do
     end
   end
 
-  defp apply_type(name, before, edited, doc) do
-    with {:ok, doc, seq?} <- apply_sequence(name, before, edited, doc),
-         {:ok, doc, map?} <- apply_map(name, before, edited, doc) do
-      {:ok, doc, seq? or map?}
+  defp apply_type(name, before, edited, doc, opts) do
+    case claiming_adapter(name, before, edited, opts) do
+      nil ->
+        with {:ok, doc, seq?} <- apply_sequence(name, before, edited, doc),
+             {:ok, doc, map?} <- apply_map(name, before, edited, doc) do
+          {:ok, doc, seq? or map?}
+        end
+
+      adapter ->
+        # The adapter owns this type: its error is returned as-is rather than
+        # falling through to a generic diff that would discard exactly the
+        # knowledge the adapter exists to apply (§19.2).
+        adapter.reauthor(before, edited, doc, name, opts)
     end
+  end
+
+  defp claiming_adapter(name, before, edited, opts) do
+    opts
+    |> Keyword.get(:adapters, [])
+    |> Enum.find(fn adapter -> adapter.handles?(before, edited, name) end)
   end
 
   # The sequence plane is classified by the CONTENT it holds, never by the type

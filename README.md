@@ -15,11 +15,11 @@ extraction** of commonplace's epoch handling into its own package.
 | strict preflight and translation, both directions | §15.3–§16 | ✅ |
 | bilateral crossing — translated / re-authored / absorbed | §15.1, §15.2 | ✅ |
 | strict path translation | §18 | ✅ |
-| positional re-authoring | §19 | ✅ Y.Text, Y.Map, Y.Array — and the reachable Y.XML surface |
+| positional re-authoring | §19 | ✅ Y.Text, Y.Map, Y.Array, the reachable Y.XML surface, and a `Rebase.Adapter` behaviour for application schemas |
 | error model and resource limits | §22, §23 | ✅ |
 | explicit algorithm-version selection | §21 | ✅ refuses substitution in either direction |
 
-**252 tests and 8 properties, no compile warnings.** Every load-bearing check is
+**260 tests and 8 properties, no compile warnings.** Every load-bearing check is
 **mutation-tested** — disabled one at a time to confirm the suite reddens. That practice found
 ornamental gates in *every* module it was applied to, and three genuine defects it would otherwise
 have missed. See [`docs/design/`](docs/design/).
