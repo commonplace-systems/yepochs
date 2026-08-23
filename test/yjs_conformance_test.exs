@@ -27,12 +27,19 @@ defmodule Yepochs.YjsConformanceTest do
 
   @fixtures Path.join(__DIR__, "fixtures/yjs-v1")
 
-  defp cases do
-    @fixtures
-    |> File.ls!()
-    |> Enum.filter(&File.dir?(Path.join(@fixtures, &1)))
-    |> Enum.sort()
-  end
+  # ⚠️ Scoped to the TEXT corpus by name, not by listing the directory. Cases
+  # 006-010 are maps and arrays with no "text" key in their expected view, and a
+  # directory listing silently swept them in here -- turning a view comparison
+  # into a nil match. `Yepochs.YjsMapArrayConformanceTest` owns those.
+  @text_cases [
+    "001-concurrent-inserts-same-position",
+    "002-sequential-inserts-two-authors",
+    "003-concurrent-overlapping-deletes",
+    "004-concurrent-adjacent-deletes",
+    "005-delete-then-concurrent-insert"
+  ]
+
+  defp cases, do: @text_cases
 
   defp updates(name) do
     Path.join([@fixtures, name, "updates.hex"])
@@ -63,7 +70,11 @@ defmodule Yepochs.YjsConformanceTest do
     # Without this, a mis-pathed @fixtures would make every case below vacuous:
     # File.ls! on a missing dir raises, but an EMPTY dir would silently pass a
     # for-comprehension over zero cases.
-    assert length(cases()) >= 5, "expected the upstream corpus, got #{inspect(cases())}"
+    assert length(cases()) == 5, "expected the upstream text corpus, got #{inspect(cases())}"
+
+    for name <- cases() do
+      assert File.dir?(Path.join(@fixtures, name)), "named text case #{name} is missing"
+    end
 
     for name <- cases() do
       assert updates(name) != [], "#{name} has no updates"

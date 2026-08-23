@@ -105,3 +105,28 @@ so the distinction §15.7 draws between that and a missing anchor was unverified
 ⭐ **Chasing the last few percent by contorting inputs would have converted honest defensive code
 into tests that assert the contortion.** Where a branch is unreachable, the useful artifact is a
 test of *why* it is unreachable — which fails if that stops being true.
+
+## ⛔ A gate that could not fail, in the commit workflow itself
+
+I committed a change with **four failing tests**, having run:
+
+```sh
+mix test 2>&1 | tail -3 && git commit …
+```
+
+⇒ **A pipeline's exit status is the LAST command's.** `tail` always succeeds, so `&&` always
+proceeded — the `mix test` verdict never reached the gate. The failure count was printed, right
+there on screen, and the chain ran anyway.
+
+**Use one of these instead:**
+
+```sh
+mix test && git commit …                       # no pipe: mix test's status IS the gate
+if mix test > /tmp/t.log 2>&1; then … else … fi # capture, branch on the real status
+set -o pipefail                                 # if a pipe is unavoidable
+```
+
+⭐ This is the same defect as every ornamental check found in the test suite — *a check whose result
+cannot change what happens next* — arriving in the tooling rather than in the code. It is worth
+recording precisely because I had spent the day finding that shape elsewhere and still shipped it in
+my own workflow.
