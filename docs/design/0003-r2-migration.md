@@ -146,11 +146,31 @@ the enclosing log protocol. §4 lists multi-writer admission as explicit non-sco
 this package to run no process and own no storage. The test asserts the negative that *is* ours:
 the application declares no callback module and registers no processes.
 
-### §28.1 compatibility fixtures — outstanding
+### §28.1 compatibility fixtures — recreated in `test/compatibility_test.exs`
 
-§28.1 requires moving or recreating commonplace's existing fixtures (deterministic snapshotting,
-mixed top-level shared types, derivation-map inversion and composition, origin / right-origin /
-ID-parent translation, mixed source client IDs, late-edit preflight, positional fallback,
-cross-epoch translation inputs). ⚠️ **Not yet done.** Reading them is explicitly not gated, and
-`~/commonplace` has ten relevant test files totalling ~1,430 lines. This is the largest remaining
-piece of §30's acceptance criteria that is actionable without the hold lifting.
+Read from `~/commonplace`'s own suites (explicitly not gated) and recreated against the span-based
+API. Each `describe` names the §28.1 bullet it covers.
+
+⭐ **Two places where "preserve the experimental behaviour" and "satisfy the spec" pull apart.** §27
+makes three deliberate corrections, so the fixtures cannot all be preserved as-is — and the
+differences are asserted rather than smoothed over:
+
+1. **`inverse_derivation_map/1` has no bijection guard.** It flips `%{new => old}` pairs directly,
+   so two new ids naming one old id lose an entry to a plain map-key collision — silently. The
+   span model refuses to *construct* such a derivation at all (`:invalid_derivation`), which is
+   §27.1's point. ⚠️ Whether the experimental map can actually reach that state depends on whether
+   the replay can emit more items than the source holds; **I have not observed it**, so this is a
+   latent hazard rather than a measured defect.
+2. **`compose_dms([])` returns `%{}`** — an identity that silently succeeds. A bridge path has
+   endpoints, so §14 requires at least one bridge and the empty path is a caller error.
+
+**New coverage that had no equivalent anywhere in this repo: the real snapshot chain.** Two
+successive *actual* snapshots, composed, with the assertion that an A-coordinate reaches a
+C-coordinate holding the **same character** — not merely that the composition is non-empty. The
+weak version (`spans != []`) passed against a mapping that could have been entirely wrong; the
+character check is the one that means something.
+
+⚠️ **Method note.** Three mutations were silent against the compatibility suite *alone* and redden
+against the full suite. That is fine — a subset suite need not catch everything — but it is only
+fine because it was **checked**: "my new tests pass" and "my new tests would notice" are different
+claims, and the second is the one worth making.
