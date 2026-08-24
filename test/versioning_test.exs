@@ -157,4 +157,68 @@ defmodule Yepochs.VersioningTest do
                )
     end
   end
+
+  describe "documentation cannot drift from the algorithm it documents" do
+    test "Snapshotter's moduledoc states the version Algorithm.snapshot/0 actually reports" do
+      # ⛔ Caught by commonplace-merkle-crdt, not by this suite: the moduledoc
+      # said "version 2" while Algorithm.snapshot/0 returned 3. They read the
+      # version off the returned struct, which is what saved them — but a reader
+      # who trusted the doc would have bound the WRONG version into an epoch
+      # token, and the token would have been stable, plausible, and wrong.
+      {:docs_v1, _, :elixir, _, %{"en" => moduledoc}, _, _} =
+        Code.fetch_docs(Yepochs.Snapshotter)
+
+      stated =
+        ~r/algorithm `yepochs\.snapshot` \*\*version (\d+)\*\*/
+        |> Regex.run(moduledoc)
+        |> case do
+          [_, n] -> String.to_integer(n)
+          nil -> flunk("Snapshotter's moduledoc no longer states its algorithm version")
+        end
+
+      assert stated == Yepochs.Algorithm.snapshot().version
+    end
+  end
+
+  describe "an empty observable state snapshots rather than refusing" do
+    test "an empty document and a fully tombstoned one both succeed with zero spans" do
+      # ⭐ Pinned because merkle-crdt's opener path depends on it: they refuse an
+      # empty head themselves as {:empty_head, head}. If this layer started
+      # refusing instead, their refusal would become unreachable and the error a
+      # caller sees would change identity.
+      empty = Yelixer.Doc.new(client_id: 100)
+
+      tombstoned =
+        Yelixer.Doc.new(client_id: 100)
+        |> Yelixer.Types.Text.insert("t", 0, "hello")
+        |> Yelixer.Types.Text.delete("t", 0, 5)
+
+      {:ok, materialized} =
+        Yelixer.Encoding.apply_update(
+          Yelixer.Doc.new(client_id: 100),
+          Yelixer.Encoding.encode_update(tombstoned)
+        )
+
+      for doc <- [empty, materialized] do
+        assert {:ok, snapshot} = Yepochs.Snapshotter.snapshot(doc)
+        assert snapshot.derivation.spans == []
+        assert byte_size(snapshot.update) <= 2
+      end
+
+      # ⛔ CONTROL: a document WITH live content must not also produce an empty
+      # snapshot, or the assertions above are satisfied by a snapshotter that
+      # emits nothing for everything.
+      {:ok, live} =
+        Yelixer.Encoding.apply_update(
+          Yelixer.Doc.new(client_id: 100),
+          Yelixer.Encoding.encode_update(
+            Yelixer.Types.Text.insert(Yelixer.Doc.new(client_id: 100), "t", 0, "hi")
+          )
+        )
+
+      assert {:ok, live_snapshot} = Yepochs.Snapshotter.snapshot(live)
+      assert live_snapshot.derivation.spans != []
+      assert byte_size(live_snapshot.update) > 2
+    end
+  end
 end

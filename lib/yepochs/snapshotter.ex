@@ -1,9 +1,9 @@
 defmodule Yepochs.Snapshotter do
   @moduledoc """
-  Deterministic snapshotting, algorithm `yepochs.snapshot` version 2.
+  Deterministic snapshotting, algorithm `yepochs.snapshot` **version 3**.
   Spec r2 §10.
 
-  The re-authoring itself is `Yelixer.Doc.snapshot_update/1`; version 2's own
+  The re-authoring itself is `Yelixer.Doc.snapshot_update/1`; this version's own
   contribution is the **deterministic minter**: the source doc's `client_id` is
   overwritten with the smallest client id present in its items (0 when empty),
   so two independent reconstructions of the same logical state produce
@@ -61,6 +61,21 @@ defmodule Yepochs.Snapshotter do
 
   @registry_remedy "the doc's type registry does not describe its store; round-trip it through Yelixer.Encoding.apply_update/2 before snapshotting"
 
+  @doc """
+  ⭐ **An EMPTY and a FULLY-TOMBSTONED document both snapshot successfully, to
+  `<<0, 0>>` with zero spans. That is deliberate, not an oversight.**
+
+  §10.2 asks that applying the snapshot to an empty document reproduce the
+  source's *observable* state. A document with no live content has none, so an
+  empty snapshot reproduces it exactly and the derivation covers every emitted
+  clock — vacuously, because there are none.
+
+  ⚠️ **"Is an empty snapshot a usable BASE?" is a different question and belongs
+  to the caller.** `commonplace-merkle-crdt` refuses such a head as
+  `{:empty_head, head}` before authoring an opener, which is right: opening an
+  epoch on nothing is a caller-level policy, and this library holds no policy
+  (§4 excludes storage and garbage collection for the same reason).
+  """
   @spec snapshot(Doc.t(), keyword()) :: {:ok, Snapshot.t()} | {:error, Error.t()}
   def snapshot(%Doc{} = source, opts \\ []) do
     with {:ok, algorithm} <- Algorithm.resolve(opts, Algorithm.snapshot(), :snapshot),
