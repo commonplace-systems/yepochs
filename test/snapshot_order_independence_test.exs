@@ -25,6 +25,7 @@ defmodule Yepochs.SnapshotOrderIndependenceTest do
   alias Yelixer.BlockStore
   alias Yelixer.Types.Array
   alias Yelixer.Types.Text
+  alias Yelixer.Types.XMLElement
   alias Yelixer.Types.XMLText
   alias Yelixer.Types.YMap
   alias Yepochs.Snapshotter
@@ -208,5 +209,84 @@ defmodule Yepochs.SnapshotOrderIndependenceTest do
         assert same_snapshot?(forward, reverse)
       end
     end
+  end
+
+  # ------------------------------------------------------------------
+  # THREE concurrent authors, and the nested-type case that turns out not
+  # to be a gap at all. Both were named as uncovered in 0009's Limits.
+  # ------------------------------------------------------------------
+
+  @three_author_ranges [{0, 3}, {2, 3}, {4, 3}, {1, 2}, {5, 2}, {3, 4}]
+
+  defp orderings([a, b, c]) do
+    [[a, b, c], [a, c, b], [b, a, c], [b, c, a], [c, a, b], [c, b, a]]
+  end
+
+  test "order-independence survives THREE concurrent authors, all six arrival orders" do
+    # ⭐ The two-author sweep left ">2 authors" as a named gap. A third author
+    # multiplies the orderings from 2 to 6, so a split boundary has more ways to
+    # land differently — this is where an order-dependent traversal would show.
+    rows =
+      for {i1, l1} <- @three_author_ranges,
+          {i2, l2} <- @three_author_ranges,
+          {i3, l3} <- @three_author_ranges do
+        updates = [deletion(200, i1, l1), deletion(300, i2, l2), deletion(400, i3, l3)]
+
+        docs = Enum.map(orderings(updates), fn order -> integrate([base_update() | order]) end)
+
+        %{
+          discriminating:
+            docs |> Enum.map(&Encoding.encode_update/1) |> Enum.uniq() |> length() > 1,
+          converged: docs |> Enum.map(&Text.to_string(&1, "t")) |> Enum.uniq() |> length() == 1,
+          snapshots_agree:
+            docs
+            |> Enum.map(fn d ->
+              {:ok, s} = Snapshotter.snapshot(d)
+              {s.update, s.derivation.spans}
+            end)
+            |> Enum.uniq()
+            |> length() == 1
+        }
+      end
+
+    discriminating = Enum.filter(rows, & &1.discriminating)
+
+    assert length(discriminating) > 100,
+           "only #{length(discriminating)} of #{length(rows)} triples have order-dependent raw " <>
+             "encoding — the instrument cannot see what it is measuring"
+
+    assert Enum.all?(rows, & &1.converged), "observable text diverged — a CRDT convergence bug"
+
+    assert Enum.all?(discriminating, & &1.snapshots_agree),
+           "a three-author triple produced different snapshots under different arrival orders"
+  end
+
+  test "nested types are not an uncovered gap — such a document has no snapshot to be ordered" do
+    # ⭐ 0009 listed "nested types" as uncovered. It is not a gap: an epoch
+    # boundary IS a snapshot, and a document holding a nested-type instance
+    # cannot be snapshotted at all, so no opener can exist over one. The
+    # question does not arise rather than being unanswered.
+    nested = [
+      Doc.new(client_id: 100)
+      |> XMLElement.new_element("e", "p")
+      |> XMLElement.insert_child("e", 0, :text),
+      Doc.new(client_id: 100)
+      |> Text.insert("t", 0, "hi")
+      |> XMLElement.new_element("e", "p")
+      |> XMLElement.insert_child("e", 0, :text)
+    ]
+
+    for doc <- nested do
+      assert {:error, error} = Snapshotter.snapshot(materialized(doc))
+      assert error.code == :unsupported_content
+      assert error.details.cause == :nested_type_children
+    end
+
+    # ⛔ CONTROL: a document with no nested type MUST snapshot, or the refusals
+    # above prove nothing about nested types specifically.
+    assert {:ok, _} =
+             Snapshotter.snapshot(
+               materialized(Text.insert(Doc.new(client_id: 100), "t", 0, "hi"))
+             )
   end
 end

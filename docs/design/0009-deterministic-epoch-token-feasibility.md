@@ -99,10 +99,31 @@ map/array content into multi-length blocks** — at which point map concurrency 
 order-dependent and this conclusion must be **re-measured rather than inherited**. Mutations: making
 the length probe always return 1 → red; simulating consolidation → red.
 
-## ⚠️ Limits of the measurement, stated rather than rounded off
+## The two remaining Limits, revisited — one measured, one not a gap
 
-- Text order-independence is measured over **concurrent deletes**, two authors. Nested types and
-  more than two concurrent authors are **not** covered. **Measured, not proven.**
+**>2 concurrent authors — measured, and it holds.** Three authors, every triple of delete ranges,
+**all six arrival orders each**:
+
+| | |
+|---|---|
+| triples | **9,261** *(55,566 documents)* |
+| ⭐ discriminating | **6,126** |
+| observable text diverged | **0** |
+| ⇒ snapshot or spans diverged | **0** |
+
+⇒ A third author multiplies the orderings from 2 to 6, giving a split boundary more ways to land
+differently. **It does not.** A 216-triple subset with a discriminating floor of 100 runs in the
+suite; the full sweep stays a probe.
+
+⭐ **Nested types — NOT an uncovered gap.** An epoch boundary **is** a snapshot, and a document
+holding a nested-type instance **cannot be snapshotted at all** — `:unsupported_content`, cause
+`:nested_type_children`, including a document that also holds ordinary text. ⇒ **No opener can exist
+over such a document, so the question does not arise rather than being unanswered.** Asserted with a
+control that a nested-type-free document *does* snapshot, or the refusals would prove nothing.
+
+## ⚠️ What remains limited, stated rather than rounded off
+
+- The text corpus is **concurrent deletes**; other concurrent text operations are not swept.
 - ⛔ **It is not a contract.** `docs/design/0002` states determinism over the exact `Doc`
   *representation*; this measurement shows the snapshotter is in fact representation-independent
   across the path-dependence that occurs, **but I have not promised that**, and promising it would
