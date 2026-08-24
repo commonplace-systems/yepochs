@@ -149,10 +149,13 @@ its README for the same reason; this is the counterpart.
    `test/epoch_boundary_test.exs`; see `docs/design/0008`.
 2. **`commonplace-merkle-crdt`'s epoch awareness advances** — it carries the token and never
    computes it, so minting questions land here and in `commonplace`.
-3. **A snapshot algorithm version is proposed** — §21 requires a new version for any change that can
+3. ⭐ **Decision (3) — the compaction premise — is ruled.** The epoch-token minting function is
+   specified in `docs/design/0010` and **deliberately not built**; that ruling is the named condition
+   the pause stands on.
+4. **A snapshot algorithm version is proposed** — §21 requires a new version for any change that can
    alter output bytes or mapping semantics, and deterministic minting depends on the version riding
    along with the token (`docs/design/0009`).
-4. **Anyone proposes deriving epoch identity from content** — measured impossible: a single-author
+5. **Anyone proposes deriving epoch identity from content** — measured impossible: a single-author
    re-authoring emits byte-identical output, so no pure function of the bytes distinguishes the
    namespaces (`docs/design/0008`).
 
