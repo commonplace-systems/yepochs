@@ -159,6 +159,22 @@ its README for the same reason; this is the counterpart.
    re-authoring emits byte-identical output, so no pure function of the bytes distinguishes the
    namespaces (`docs/design/0008`).
 
+## Mutation testing
+
+`bin/mutate.sh <file> <old> <new> [test target]` applies a substitution, runs the tests, and always
+restores the file — including on a signal.
+
+⛔ **It refuses a substitution that changed no bytes (exit 3).** That is the check it exists for: a
+malformed mutation reads *exactly* like an ornamental gate — both are "I changed it and nothing
+happened." This was hit three times by hand in one session before being filed, once because
+`mix format` had wrapped a line so a single-line pattern never matched.
+
+Exit codes: **0** caught (gate works) · **1** survived (gate suspect) · **2** usage or a dirty target
+file · **3** mutation changed nothing.
+
+⚠️ **A weakening mutation always survives and proves nothing** — invert the assertion or break the
+mechanism instead.
+
 ## Standing cautions for whoever reads this next
 
 ⛔ **Do not tidy `test/epoch_boundary_test.exs` into "every fork mints an epoch".** A fork that
