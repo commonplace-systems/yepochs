@@ -221,4 +221,58 @@ defmodule Yepochs.VersioningTest do
       assert byte_size(live_snapshot.update) > 2
     end
   end
+
+  describe "the condition that currently makes algorithm divergence impossible" do
+    test "exactly one version per algorithm id is SUPPORTED, and this test fires when that ends" do
+      # ⭐ THE MIRROR OF merkle-crdt's PREMISE TEST, owed from this side.
+      #
+      # `Algorithm.resolve/3` returns the CALLER-REQUESTED algorithm whenever
+      # `opts[:algorithm]` names a supported one of the same id — so a consumer
+      # that mints a token from `Algorithm.snapshot/0` while the bytes were
+      # produced under a requested version would bind the wrong version into a
+      # durable id. Today that cannot happen, and the ONLY reason is that each
+      # id has exactly one supported version. That is a fact about a list, not a
+      # property of the code.
+      #
+      # ⛔ So this test fails the moment a second version of any id becomes
+      # supported — forcing whoever adds it to confront the divergence rather
+      # than inherit a safety that quietly stopped holding. §21 expects that
+      # list to grow, which is exactly why this is worth pinning.
+      by_id = Enum.group_by(Yepochs.Algorithm.supported(), & &1.id)
+
+      multiples = for {id, versions} <- by_id, length(versions) > 1, do: {id, versions}
+
+      assert multiples == [],
+             "more than one version of an algorithm id is now supported: #{inspect(multiples)}. " <>
+               "⇒ `Algorithm.resolve/3` can now return something OTHER than the default, so any " <>
+               "consumer taking the algorithm pair from `Algorithm.snapshot/0` while the bytes " <>
+               "were produced under a requested version will bind the wrong version into a " <>
+               "durable id. Re-read docs/design/0010 and tell the consumers before relaxing this."
+    end
+
+    test "and the request path is honoured rather than ignored — the premise, testable today" do
+      # ⛔ Without this, the assertion above guards nothing: if `resolve/3`
+      # ignored `opts[:algorithm]` entirely and always returned the default,
+      # a second supported version would be harmless and this whole concern
+      # imaginary. It does not ignore it — measured through the public surface.
+      {:ok, doc} =
+        Yelixer.Encoding.apply_update(
+          Yelixer.Doc.new(client_id: 100),
+          Yelixer.Encoding.encode_update(
+            Yelixer.Types.Text.insert(Yelixer.Doc.new(client_id: 100), "t", 0, "hi")
+          )
+        )
+
+      assert {:error, %Yepochs.Error{code: :incompatible_algorithm}} =
+               Yepochs.Snapshotter.snapshot(doc, algorithm: Yepochs.Algorithm.snapshot_v2()),
+             "a requested-but-unproducible version must be REFUSED; if this returned {:ok, _} " <>
+               "the snapshotter would be ignoring the request and serving default bytes under " <>
+               "the requested tag"
+
+      assert {:ok, %{algorithm: requested}} =
+               Yepochs.Snapshotter.snapshot(doc, algorithm: Yepochs.Algorithm.snapshot())
+
+      assert requested == Yepochs.Algorithm.snapshot()
+    end
+  end
 end
