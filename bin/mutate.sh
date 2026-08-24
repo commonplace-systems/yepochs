@@ -8,6 +8,14 @@
 # once because `mix format` had wrapped a line and a single-line pattern never
 # matched.
 #
+# ⚠️ AN EMPTY TEST COUNT IN A "CAUGHT" LINE MEANS A COMPILE ERROR, NOT A TEST
+#   FAILURE. Both exit non-zero and both print ✅ CAUGHT, but only one of them
+#   shows that the ASSERTIONS can see the change. 2026-08-24: a caller loop used
+#   `IFS='|' read` to split its cases, which split on the `|>` pipes inside the
+#   Elixir being mutated — so two "mutations" were garbage that failed to
+#   compile. The tool was right; the harness around it was not. ⇒ READ THE
+#   COUNT, not the tick.
+#
 # ⚠️ A WEAKENING mutation always survives and proves nothing. Changing
 #   `assert x == "expected"` to `assert is_binary(x)` reports SURVIVED, but a
 #   weaker assertion cannot fail by construction — that is not evidence the gate
