@@ -108,10 +108,31 @@ defmodule Yepochs.InvariantsTest do
     end
 
     test "no loaded module comes from a Commonplace application" do
-      commonplace =
-        :code.all_loaded()
-        |> Enum.map(fn {m, _} -> to_string(m) end)
-        |> Enum.filter(&String.starts_with?(&1, "Elixir.Commonplace"))
+      loaded = :code.all_loaded() |> Enum.map(fn {m, _} -> to_string(m) end)
+
+      # ⛔ POSITIVE CONTROL ON THE FILTER ITSELF, not on the codebase.
+      # `assert commonplace == []` passes identically whether no Commonplace
+      # module is loaded or the prefix simply never matches anything — a typo
+      # like "Elixir.CommonPlace" would make this test green forever. So first
+      # demonstrate that a prefix filter over this exact corpus CAN find a
+      # module that is certainly present.
+      assert loaded != [], "the code server reported no loaded modules at all"
+
+      assert Enum.any?(loaded, &String.starts_with?(&1, "Elixir.Yepochs")),
+             "the prefix filter found no Yepochs module, so it is not capable of finding a " <>
+               "Commonplace one either — this instrument is blind, not reassuring"
+
+      # ⚠️ The control above proves the MECHANISM works; it cannot prove the
+      # search string is spelled right, because a typo would be shared by any
+      # self-consistent control. So validate the prefix against a real module
+      # name observed in Commonplace's tree — a literal, requiring no dependency.
+      prefix = "Elixir.Commonplace"
+
+      assert String.starts_with?("Elixir.Commonplace.Store.Commit", prefix),
+             "the search prefix does not match a module name known to exist in Commonplace, " <>
+               "so it would never match a loaded one either"
+
+      commonplace = Enum.filter(loaded, &String.starts_with?(&1, prefix))
 
       assert commonplace == [], "a Commonplace module is loaded: #{inspect(commonplace)}"
     end
