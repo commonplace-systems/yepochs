@@ -152,10 +152,13 @@ its README for the same reason; this is the counterpart.
 3. ⭐ **Decision (3) — the compaction premise — is ruled.** The epoch-token minting function is
    specified in `docs/design/0010` and **deliberately not built**; that ruling is the named condition
    the pause stands on.
-4. **A snapshot algorithm version is proposed** — §21 requires a new version for any change that can
+4. ⛔ **The monolith is proposed as a consumer of `commonplace-merkle-crdt`** — that revives the
+   `commonplace` → `yepochs` gate transitively, and it is a new decision rather than a consequence
+   of the 2026-08-24 grant. See the standing cautions below.
+5. **A snapshot algorithm version is proposed** — §21 requires a new version for any change that can
    alter output bytes or mapping semantics, and deterministic minting depends on the version riding
    along with the token (`docs/design/0009`).
-5. **Anyone proposes deriving epoch identity from content** — measured impossible: a single-author
+6. **Anyone proposes deriving epoch identity from content** — measured impossible: a single-author
    re-authoring emits byte-identical output, so no pure function of the bytes distinguishes the
    namespaces (`docs/design/0008`).
 
@@ -186,5 +189,20 @@ new one. Colliding namespaces cause **order-dependent silent loss** — Yjs dedu
 (byte-identical as filed by jes), **r3 `3f43be13…` is current** and carries `Version: 0.1-draft-r3`.
 Amendment record: `docs/design/0007`.
 
-⛔ **`commonplace` taking a dependency on `yepochs` is GATED** by `commonplace-plan`, in either
-direction of arrival. Awareness is not a dependency.
+⚠️ **Dependency status, as of 2026-08-24.** jes granted **`commonplace-merkle-crdt` → `yepochs`**
+("i do want merkle-crdt to depend on yepochs"). `commonplace-doc` reaches this library **through
+merkle-crdt's re-export**, keeping one content door.
+
+⛔ **The grant covers that ONE edge and does not travel.** `commonplace-plan`'s crux — *is
+merkle-crdt ever intended to be consumed by the monolith?* — **was not answered**, so if the monolith
+is ever proposed as a consumer of merkle-crdt, **the `commonplace` → `yepochs` gate is live again and
+that is a new decision.** ⇒ Do not let it arrive transitively on the strength of the merkle grant.
+
+⭐ Measured true today, which is why the grant was safe: the monolith references merkle-crdt in
+**zero** files, with zero `mix.exs` mentions; merkle-crdt's consumers are `commonplace-doc` and
+`commonplace-dir`, both path-deps.
+
+⛔ **And whoever consumes it MUST re-export, never reimplement.** Two implementations of the minting
+function are two tokens, and two implementations of the span walk are two derivations — the failure
+appearing as unresolvable references long after the artifact is durable. The conformance vectors in
+`docs/design/0010` are what make that enforceable rather than a promise.
