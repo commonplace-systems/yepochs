@@ -40,7 +40,8 @@ alg = {"yepochs.snapshot", 3}
 
 vectors = [
   {"V1 single parent, single epoch", ["commit:aaa"], ["epoch:E1"], alg},
-  {"V2 two parents, one epoch (same-epoch opener)", ["commit:bbb", "commit:aaa"], ["epoch:E1"], alg},
+  {"V2 two parents, one epoch (same-epoch opener)", ["commit:bbb", "commit:aaa"], ["epoch:E1"],
+   alg},
   {"V3 two parents, two epochs (CROSS-EPOCH opener)", ["commit:bbb", "commit:aaa"],
    ["epoch:E2", "epoch:E1"], alg},
   {"V4 V3 with inputs pre-sorted — MUST equal V3", ["commit:aaa", "commit:bbb"],
@@ -75,10 +76,18 @@ IO.puts("V2 != V3 (source epoch set is bound)   : #{get.("V2") != get.("V3")}")
 IO.puts("⭐ V8 != V9 (LENGTH FRAMING WORKS)      : #{get.("V8") != get.("V9")}")
 
 IO.puts("\n## Control: the unframed draft formula COLLIDES on V8/V9")
+
 naive = fn parents, epochs, {id, v} ->
-  :crypto.hash(:sha256, Enum.join(Enum.sort(parents)) <> Enum.join(Enum.sort(epochs)) <> id <> to_string(v))
+  :crypto.hash(
+    :sha256,
+    Enum.join(Enum.sort(parents)) <> Enum.join(Enum.sort(epochs)) <> id <> to_string(v)
+  )
   |> Base.encode16(case: :lower)
 end
+
 n8 = naive.(["ab", "c"], ["x"], alg)
 n9 = naive.(["a", "bc"], ["x"], alg)
-IO.puts("naive V8 == naive V9                   : #{n8 == n9}   <- ⛔ TRUE means the draft was collision-capable")
+
+IO.puts(
+  "naive V8 == naive V9                   : #{n8 == n9}   <- ⛔ TRUE means the draft was collision-capable"
+)
