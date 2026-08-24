@@ -22,7 +22,11 @@ defmodule Yepochs.SnapshotOrderIndependenceTest do
 
   alias Yelixer.Doc
   alias Yelixer.Encoding
+  alias Yelixer.BlockStore
+  alias Yelixer.Types.Array
   alias Yelixer.Types.Text
+  alias Yelixer.Types.XMLText
+  alias Yelixer.Types.YMap
   alias Yepochs.Snapshotter
 
   # Every pair of concurrent deletes over an 8-character base: 26 ranges squared.
@@ -107,5 +111,102 @@ defmodule Yepochs.SnapshotOrderIndependenceTest do
            "#{length(disagreements)} of #{length(discriminating)} order-dependent pairs produced " <>
              "different snapshots. ⛔ Deterministic epoch-token minting is NOT feasible from a " <>
              "locally materialized Doc, and jes must be told with this measurement."
+  end
+
+  # ------------------------------------------------------------------
+  # Map and array concurrency — the gap `docs/design/0009` declared, and
+  # `commonplace-doc` correctly refused to let stand as "asserted".
+  # ------------------------------------------------------------------
+
+  defp materialized(%Doc{} = d) do
+    {:ok, m} = Encoding.apply_update(Doc.new(client_id: d.client_id), Encoding.encode_update(d))
+    m
+  end
+
+  defp max_item_length(%Doc{store: store}) do
+    store |> BlockStore.all_items() |> Enum.map(& &1.length) |> Enum.max(fn -> 0 end)
+  end
+
+  @doc false
+  def map_and_array_constructions do
+    [
+      {"array 8 values in one call",
+       fn -> Array.insert(Doc.new(client_id: 100), "a", 0, ~w(a b c d e f g h)) end},
+      {"array 8 push calls",
+       fn -> Enum.reduce(1..8, Doc.new(client_id: 100), &Array.push(&2, "a", ["#{&1}"])) end},
+      {"array of integers",
+       fn -> Array.insert(Doc.new(client_id: 100), "a", 0, [1, 2, 3, 4, 5, 6, 7, 8]) end},
+      {"array of long strings",
+       fn -> Array.insert(Doc.new(client_id: 100), "a", 0, ["aaaaaaaa", "bbbbbbbb"]) end},
+      {"map 8 keys",
+       fn -> Enum.reduce(1..8, Doc.new(client_id: 100), &YMap.set(&2, "m", "k#{&1}", "v")) end},
+      {"map long value",
+       fn -> YMap.set(Doc.new(client_id: 100), "m", "k", "aaaaaaaaaaaaaaaa") end},
+      {"map overwritten 8 times",
+       fn -> Enum.reduce(1..8, Doc.new(client_id: 100), &YMap.set(&2, "m", "k", "v#{&1}")) end}
+    ]
+  end
+
+  test "map and array items are UNSPLITTABLE, which is why their concurrency cannot reorder" do
+    # ⭐ The mechanism, not a corpus observation. Text is order-dependent under
+    # concurrent deletes because `"abcdefgh"` is ONE item of length 8 and the
+    # deletes SPLIT it — split boundaries depend on arrival order. Map and array
+    # items are length 1, so there is nothing to split.
+    #
+    # ⛔ This test fails if the substrate ever consolidates map/array content
+    # into multi-length blocks. At that point map concurrency COULD become
+    # order-dependent and 0009's conclusion must be re-measured rather than
+    # inherited — the limit must not outlive its cause.
+    for {name, build} <- map_and_array_constructions() do
+      assert max_item_length(materialized(build.())) == 1,
+             "#{name} now holds a multi-length item — map/array content has become splittable, " <>
+               "so the order-independence conclusion in docs/design/0009 must be RE-MEASURED"
+    end
+
+    # ⭐ Control on the instrument: it must be able to SEE a length > 1, or the
+    # assertions above are satisfied by a measurement that always returns 1.
+    assert max_item_length(materialized(Text.insert(Doc.new(client_id: 100), "t", 0, "abcdefgh"))) ==
+             8
+
+    assert max_item_length(
+             materialized(XMLText.insert(Doc.new(client_id: 100), "x", 0, "abcdefgh"))
+           ) == 8
+  end
+
+  test "concurrent map and array operations never reorder the encoding, let alone the snapshot" do
+    base_map =
+      materialized(Enum.reduce(~w(a b c), Doc.new(client_id: 100), &YMap.set(&2, "m", &1, "v0")))
+
+    base_arr = materialized(Array.insert(Doc.new(client_id: 100), "a", 0, ~w(p q r s)))
+
+    map_ops =
+      for(k <- ~w(a b c d), v <- ~w(x y), do: &YMap.set(&1, "m", k, v)) ++
+        for(k <- ~w(a b c), do: &YMap.delete(&1, "m", k))
+
+    arr_ops =
+      for(i <- 0..4, do: &Array.insert(&1, "a", i, ["N"])) ++
+        for(i <- 0..3, l <- 1..2, i + l <= 4, do: &Array.delete(&1, "a", i, l))
+
+    for {base, ops} <- [{base_map, map_ops}, {base_arr, arr_ops}] do
+      base_u = Encoding.encode_update(base)
+
+      apply_op = fn client, f ->
+        {:ok, d} = Encoding.apply_update(Doc.new(client_id: client), base_u)
+        Encoding.encode_update(f.(d))
+      end
+
+      for f1 <- ops, f2 <- ops do
+        u1 = apply_op.(200, f1)
+        u2 = apply_op.(300, f2)
+
+        forward = integrate([base_u, u1, u2])
+        reverse = integrate([base_u, u2, u1])
+
+        # ⚠️ Stronger than the text case: the RAW ENCODING already agrees, so
+        # snapshot agreement follows rather than being an extra fact.
+        assert Encoding.encode_update(forward) == Encoding.encode_update(reverse)
+        assert same_snapshot?(forward, reverse)
+      end
+    end
   end
 end
