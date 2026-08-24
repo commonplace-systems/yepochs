@@ -59,6 +59,29 @@ to its epoch**, so the epoch refs are **strictly redundant**. They are included 
 computable from carried metadata **without fetching parents**, and because a later change to (1)
 would otherwise silently weaken the token. ⭐ **Deliberate redundancy, not necessity.**
 
+## Conformance vectors — the specification made executable
+
+⭐ **A spec that cannot refuse an implementation is a suggestion.** `probes/epoch_token_reference.exs`
+is a reference implementation **and not library code**; whoever ships the real one must reproduce
+these sha256 values byte-for-byte.
+
+| vector | inputs | sha256 |
+|---|---|---|
+| V1 | 1 parent, 1 epoch | `566bd000927dfd33…` |
+| V2 | 2 parents, 1 epoch *(same-epoch opener)* | `aa96fa5ff052168b…` |
+| V3 | 2 parents, 2 epochs *(**cross-epoch opener**)* | `cbee36a3f7372ffb…` |
+| V10 | 0 parents *(root opener)* | `3584377094a115e6…` |
+
+**Required relations, all verified:** V4 (pre-sorted inputs) **==** V3 · V5 (duplicate epoch) **==**
+V3 · V6 (algorithm version 2) **!=** V1 · V7 (different algorithm id) **!=** V1 · V2 **!=** V3.
+
+⛔⛔ **And the framing case, which is why the draft formula had to change.** V8 `parents=["ab","c"]`
+and V9 `parents=["a","bc"]`, same epoch, same algorithm:
+
+- **framed** ⇒ `8e97da39…` vs `cd25c2e6…` — **distinct** ✅
+- **unframed draft** ⇒ ⛔ **IDENTICAL. Measured, not argued.** Two different openers, one token,
+  one permanent id inside the content address.
+
 ## First fixture, when there is one
 
 ⭐ **The cross-epoch 2-parent opener** (`m = 2`), not a single-parent case. ⛔ **A same-epoch or
