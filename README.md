@@ -134,3 +134,38 @@ jes, same day, independently: he is writing a spec first, and an agent goes in a
 - `commonplace-merkle-crdt` — jes named yepochs as something that repo needs to know about.
 - The §5 vertical slice, which plan records as **gated on this extraction** rather than startable
   today.
+
+## Wake conditions
+
+⛔ **These live here, not only in another agent's file.** Wake conditions recorded only by whoever
+is watching are lost when that watcher's context is. `commonplace-merkle-crdt` moved its own into
+its README for the same reason; this is the counterpart.
+
+**Wake this repo when:**
+
+1. ⭐ **Anyone touches epoch minting rules** — the boundary between "ordinary edits" and
+   "deterministic re-authoring" is load-bearing for fork push-back, and the plausible tightening
+   *"every fork mints an epoch"* is the one that breaks it silently. Guarded by
+   `test/epoch_boundary_test.exs`; see `docs/design/0008`.
+2. **`commonplace-merkle-crdt`'s epoch awareness advances** — it carries the token and never
+   computes it, so minting questions land here and in `commonplace`.
+3. **A snapshot algorithm version is proposed** — §21 requires a new version for any change that can
+   alter output bytes or mapping semantics, and deterministic minting depends on the version riding
+   along with the token (`docs/design/0009`).
+4. **Anyone proposes deriving epoch identity from content** — measured impossible: a single-author
+   re-authoring emits byte-identical output, so no pure function of the bytes distinguishes the
+   namespaces (`docs/design/0008`).
+
+## Standing cautions for whoever reads this next
+
+⛔ **Do not tidy `test/epoch_boundary_test.exs` into "every fork mints an epoch".** A fork that
+branches over one Yjs history **keeps** its epoch; one that replays into fresh identities mints a
+new one. Colliding namespaces cause **order-dependent silent loss** — Yjs deduplicates by
+`{client, clock}`, so an edit is discarded with no error and the loser is chosen by arrival order.
+
+⚠️ **Spec revisions are told apart by hash, not by header.** r1 `c24ce9dd…`, r2 `8765bb15…`
+(byte-identical as filed by jes), **r3 `3f43be13…` is current** and carries `Version: 0.1-draft-r3`.
+Amendment record: `docs/design/0007`.
+
+⛔ **`commonplace` taking a dependency on `yepochs` is GATED** by `commonplace-plan`, in either
+direction of arrival. Awareness is not a dependency.
