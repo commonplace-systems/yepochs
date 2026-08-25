@@ -5,11 +5,16 @@ extracted into its own package.
 
 ## Status
 
-**At `1d6b624`: spec r3 §6–§24 implemented, epoch-token minting shipped, 12 properties, 628 tests, 0 failures; consumed by
+**Measured at `9f5e5f2`: spec r3 §6–§24 implemented, epoch-token minting shipped, 12 properties, 628 tests, 0 failures; consumed by
 `commonplace-merkle-crdt` for compaction openers.**
 
 ⚠️ **This line is rewritten at every landing and is never appended below.** A count without the sha
 it was measured at is a claim about a moment nobody can identify.
+
+⛔ **It names the sha the measurement was TAKEN at, not this commit's own.** A commit cannot name
+itself — writing the name changes the hash, and amending to fix it changes it again. ⇒ *"the sha it
+was measured at"* is the only form that is stable, and it is exact: docs-only landings do not move
+the count, so the measurement sha legitimately trails the head.
 
 The surface, against spec r3:
 
@@ -26,7 +31,7 @@ The surface, against spec r3:
 | error model and resource limits | §22, §23 | ✅ |
 | explicit algorithm-version selection | §21 | ✅ refuses substitution in either direction |
 
-**At `1d6b624`: 12 properties, 628 tests, 0 failures** — including §28.4 conformance vectors authored by **upstream
+**Measured at `9f5e5f2`: 12 properties, 628 tests, 0 failures** — including §28.4 conformance vectors authored by **upstream
 `yjs` 13.6.32**, not by this stack. Ten vectors: five text/delete, and five
 `Y.Map`/`Y.Array` generated for ruling 8.1. ⚠️ **No XML vectors and no XML claim** — element children
 cannot survive the snapshot replay, so such documents can hold no bridge. `mix check` runs the lot: formatting, `--warnings-as-errors`,
