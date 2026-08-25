@@ -102,13 +102,26 @@ fi
 echo "mutation applied to $FILE ($(git diff --numstat -- "$FILE" | awk '{print $1"+ "$2"-"}'))"
 
 LOG="$(mktemp)"
+# ⛔ THE FAILING TEST NAME IS THE EVIDENCE, AND A COUNT IS NOT IT.
+# This used to print "N tests, M failures" and then `rm -f "$LOG"` — destroying
+# the only record of WHICH test failed. That is fine for an expected mutation
+# result and catastrophic for an unexpected one: a flaky or concurrency-induced
+# failure inside a mutation run would be reported as a successful catch, with
+# the name gone. Two repos in this fleet lost a name exactly this way on the
+# same afternoon, one of them to `tail -1`.
+# ⇒ The log is KEPT and its path printed. The re-run is what destroys the
+# evidence, so the evidence has to outlive the first run.
 if mix test ${TARGET:+"$TARGET"} > "$LOG" 2>&1; then
   echo "⚠️  SURVIVED — the suite stayed green under this mutation."
   echo "   $(grep -oE '[0-9]+ tests?, [0-9]+ failures?' "$LOG" | tail -1)"
-  rm -f "$LOG"
+  echo "   full output: $LOG"
   exit 1
 else
   echo "✅ CAUGHT — $(grep -oE '[0-9]+ tests?, [0-9]+ failures?' "$LOG" | tail -1)"
-  rm -f "$LOG"
+  # ⭐ Name every failing test, in full. If a name here is NOT one you expected
+  # this mutation to break, you have found something else — do not re-run before
+  # reading $LOG.
+  grep -E '^\s+[0-9]+\) (test|property) ' "$LOG" | sed 's/^/   /'
+  echo "   full output: $LOG"
   exit 0
 fi
