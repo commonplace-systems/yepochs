@@ -32,19 +32,30 @@ FILE="${1:-}"; OLD="${2:-}"; NEW="${3:-}"; TARGET="${4:-}"
 
 if [[ -z "$FILE" || -z "$OLD" || -z "$NEW" ]]; then
   echo "usage: bin/mutate.sh <file> <old> <new> [test target]" >&2
+  echo "  (nothing was changed)" >&2
   exit 2
 fi
-[[ -f "$FILE" ]] || { echo "no such file: $FILE" >&2; exit 2; }
+[[ -f "$FILE" ]] || { echo "no such file: $FILE (nothing was changed)" >&2; exit 2; }
 
 # ⛔ Refuse to operate on a file with uncommitted changes: the restore below
 # would silently discard them.
 if ! git diff --quiet -- "$FILE" || ! git diff --cached --quiet -- "$FILE"; then
-  echo "⛔ $FILE has uncommitted changes; commit or stash first (restore would clobber them)" >&2
+  echo "⛔ $FILE has uncommitted changes; commit or stash first (restore would clobber them)." >&2
+  echo "   Nothing was changed — this refusal happens before any backup or edit." >&2
   exit 2
 fi
 
 BACKUP="$(mktemp)"
-cp "$FILE" "$BACKUP"
+# ⛔⛔ VERIFY THE BACKUP BEFORE ARMING THE TRAP. If `cp` failed, $BACKUP is an
+# EMPTY file and the restore below would TRUNCATE the caller's source to zero —
+# a safety mechanism causing the exact harm it exists to prevent. `set -e` is
+# deliberately not in use here (mix test's failure is handled, not fatal), so a
+# failed cp would otherwise pass silently.
+if ! cp "$FILE" "$BACKUP" || ! cmp -s "$FILE" "$BACKUP"; then
+  rm -f "$BACKUP"
+  echo "⛔ could not take a verified backup of $FILE — refusing to mutate. Nothing was changed." >&2
+  exit 2
+fi
 # Restore on ANY exit, including a signal — a crash must never leave the tree
 # mutated.
 trap 'cp "$BACKUP" "$FILE"; rm -f "$BACKUP"' EXIT
@@ -59,6 +70,7 @@ PY
 if cmp -s "$BACKUP" "$FILE"; then
   echo "⛔ MALFORMED: the substitution changed no bytes — the pattern did not match."
   echo "   This is NOT a surviving mutation. Check for reflowed lines (mix format wraps)."
+  echo "   $FILE has been RESTORED; the tree is as you left it."
   exit 3
 fi
 
