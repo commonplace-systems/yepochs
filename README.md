@@ -160,8 +160,16 @@ its README for the same reason; this is the counterpart.
    (`~/yelixer-pin-bc35a0e9-merkle`) and its drift test checks that clone
    **against this repo's lock**. ⇒ Moving the pin breaks their test by design —
    which is the point — but they should hear it from here first rather than
-   from a red suite. **They also pin this repo itself by path; tell them before
-   any behavioural change so they move that pin deliberately.**
+   from a red suite. **They pin this repo by ORIGIN SHA** (`git:` + `ref:`, no longer a path
+   worktree, as of 2026-08-25) **— so tell them before any behavioural change,
+   and note a moved pin now requires a push, not just a local commit.**
+
+   ⚠️ Six further repos (`doc`, `cell`, `next`, `markdown`, `dir`, `doc-sync`)
+   declare `{:yepochs, git: …, override: true}`. **Measured: all six call
+   `Yepochs.*` in ZERO files; `merkle-crdt` calls it in 4.** ⇒ Those are
+   diamond-resolution **overrides, not API consumption** — the grant's "one
+   consumer" boundary holds in substance. ⛔ Do not read a `mix.exs` entry as
+   usage without checking for call sites.
 6. **A snapshot algorithm version is proposed** — §21 requires a new version for any change that can
    alter output bytes or mapping semantics, and deterministic minting depends on the version riding
    along with the token (`docs/design/0009`).
