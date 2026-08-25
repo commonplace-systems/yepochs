@@ -25,6 +25,9 @@
 # Usage: bin/mutate.sh <file> <old> <new> [test target]
 # Exit:  0 mutation was CAUGHT (gate works) · 1 mutation SURVIVED (gate suspect)
 #        2 usage/precondition · 3 mutation changed nothing (malformed)
+#
+# Works on a file with uncommitted changes; they are preserved. See the note
+# below for the one case that is not covered (SIGKILL).
 
 # ⭐ SAFE BY CONSTRUCTION, NOT SAFE BY THIS LINE — measured, not asserted.
 # Removing `pipefail` changes NOTHING here: all three arms (caught / survived /
@@ -48,13 +51,24 @@ if [[ -z "$FILE" || -z "$OLD" || -z "$NEW" ]]; then
 fi
 [[ -f "$FILE" ]] || { echo "no such file: $FILE (nothing was changed)" >&2; exit 2; }
 
-# ⛔ Refuse to operate on a file with uncommitted changes: the restore below
-# would silently discard them.
-if ! git diff --quiet -- "$FILE" || ! git diff --cached --quiet -- "$FILE"; then
-  echo "⛔ $FILE has uncommitted changes; commit or stash first (restore would clobber them)." >&2
-  echo "   Nothing was changed — this refusal happens before any backup or edit." >&2
-  exit 2
-fi
+# ⛔ THIS SCRIPT USED TO REFUSE A FILE WITH UNCOMMITTED CHANGES, AND THE REASON
+# WAS FALSE. The stated reason was "the restore would silently discard them".
+# It would not: the backup is `cp "$FILE" "$BACKUP"` — the file AS IT IS,
+# uncommitted changes included — so the restore puts back exactly what was
+# there. Measured: a scratch line added to a file survives a full mutate run
+# byte-identical.
+#
+# ⭐ AND THE FALSE GUARD CHANGED ITS USER'S BEHAVIOUR, WHICH IS THE PART WORTH
+# KEEPING. To satisfy it I twice ran `git commit -m "wip"` purely as scratch,
+# and one of those escaped into pushed history (c71c706). ⇒ A precondition that
+# is not actually required does not merely annoy — it manufactures a worse
+# habit, and the evidence was in my own git log.
+#
+# ⚠️ THE REAL RESIDUAL RISK, which is narrower and true: the EXIT trap covers
+# every ordinary exit and every catchable signal, but NOT SIGKILL. If this is
+# `kill -9`ed mid-run the mutation persists. With the file committed you recover
+# with `git checkout --`; with uncommitted changes you do not. That is a caveat
+# to state, not a reason to refuse.
 
 BACKUP="$(mktemp)"
 # ⛔⛔ VERIFY THE BACKUP BEFORE ARMING THE TRAP. If `cp` failed, $BACKUP is an
