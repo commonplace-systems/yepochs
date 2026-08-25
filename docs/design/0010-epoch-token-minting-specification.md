@@ -1,7 +1,14 @@
-# 0010 — Epoch token minting: the specification, ahead of any implementation
+# 0010 — Epoch token minting: the specification, and the implementation it preceded
 
-**Status:** specified, **NOT implemented, NOT authorised to implement** · **Date:** 2026-08-24
-**Depends on:** `docs/design/0009` (feasibility) · **Blocked on:** decision (3), the compaction premise
+**Status:** ✅ **IMPLEMENTED at `cf17c4c`** as `Yepochs.EpochToken.mint/3` · **Date:** 2026-08-24
+**Depends on:** `docs/design/0009` (feasibility)
+
+⭐ **The specification below was written BEFORE the implementation and is unchanged by it.** That
+ordering is the point: the vectors were the acceptance criterion, and they were verified in both
+directions against the reference — every hash in `test/epoch_token_test.exs` is one of the
+reference's, and every reference hash is covered. ⛔ A test that hard-codes hashes its own
+implementation produced is self-consistent and worthless; after the fact there is nothing
+independent left to compare against.
 
 ## Why this file exists before the code does
 
@@ -11,8 +18,8 @@ records the result at `docs/DECISION-epoch-tokens-are-hashes.md`. ⭐ **This rep
 natural owner of the minting function, and owned a decision that lived only in a conversation and
 another repo's record.** That is the failure mode this repo spends most of its effort avoiding.
 
-⚠️ **Nothing here is built.** The pause stands on a named condition: **decision (3), whether this
-host mints openers at all, is unruled.**
+✅ **Decision (3) was ruled** (compaction is needed), the pause condition fired, and the function
+shipped at `cf17c4c` against the vectors below.
 
 ## The rule
 

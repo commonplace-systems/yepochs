@@ -1,17 +1,24 @@
 # yepochs
 
-Sibling to [yelixer](https://github.com/commonplace-systems/yelixer) — the planned **Phase-2
-extraction** of commonplace's epoch handling into its own package.
+Sibling to [yelixer](https://github.com/commonplace-systems/yelixer) — commonplace's epoch handling,
+extracted into its own package.
 
 ## Status
 
-**A working library.** Spec r2 §6–§19 and §22–§24 are implemented against the Yelixer substrate:
+**At `1d6b624`: spec r3 §6–§24 implemented, epoch-token minting shipped, 12 properties, 628 tests, 0 failures; consumed by
+`commonplace-merkle-crdt` for compaction openers.**
+
+⚠️ **This line is rewritten at every landing and is never appended below.** A count without the sha
+it was measured at is a claim about a moment nobody can identify.
+
+The surface, against spec r3:
 
 | area | spec | state |
 |---|---|---|
 | Span · Derivation · Bridge · Basis · Delta · Receipt | §8, §9 | ✅ |
 | bridge lookup, inversion, composition, evolution | §11–§14, §17 | ✅ |
-| deterministic snapshotting, algorithm v2 | §10 | ✅ |
+| deterministic snapshotting, algorithm v3 | §10 | ✅ |
+| epoch-token minting, length-framed and domain-separated | `docs/design/0010` | ✅ `Yepochs.EpochToken.mint/3` |
 | strict preflight and translation, both directions | §15.3–§16 | ✅ |
 | bilateral crossing — translated / re-authored / absorbed | §15.1, §15.2 | ✅ |
 | strict path translation | §18 | ✅ |
@@ -19,7 +26,7 @@ extraction** of commonplace's epoch handling into its own package.
 | error model and resource limits | §22, §23 | ✅ |
 | explicit algorithm-version selection | §21 | ✅ refuses substitution in either direction |
 
-**318 tests and 12 properties** — including §28.4 conformance vectors authored by **upstream
+**At `1d6b624`: 12 properties, 628 tests, 0 failures** — including §28.4 conformance vectors authored by **upstream
 `yjs` 13.6.32**, not by this stack. Ten vectors: five text/delete, and five
 `Y.Map`/`Y.Array` generated for ruling 8.1. ⚠️ **No XML vectors and no XML claim** — element children
 cannot survive the snapshot replay, so such documents can hold no bridge. `mix check` runs the lot: formatting, `--warnings-as-errors`,
@@ -149,9 +156,10 @@ its README for the same reason; this is the counterpart.
    `test/epoch_boundary_test.exs`; see `docs/design/0008`.
 2. **`commonplace-merkle-crdt`'s epoch awareness advances** — it carries the token and never
    computes it, so minting questions land here and in `commonplace`.
-3. ⭐ **Decision (3) — the compaction premise — is ruled.** The epoch-token minting function is
-   specified in `docs/design/0010` and **deliberately not built**; that ruling is the named condition
-   the pause stands on.
+3. ⭐ **A second consumer needs the minting function.** `Yepochs.EpochToken.mint/3` shipped at
+   `cf17c4c`; its conformance vectors are in `docs/design/0010` and a re-implementation fails them
+   immediately. ⛔ **Consumers MUST re-export, never reimplement** — two implementations are two
+   tokens.
 4. ⛔ **The monolith is proposed as a consumer of `commonplace-merkle-crdt`** — that revives the
    `commonplace` → `yepochs` gate transitively, and it is a new decision rather than a consequence
    of the 2026-08-24 grant. See the standing cautions below.

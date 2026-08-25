@@ -74,7 +74,7 @@ by the same rule as the thing it guards cannot detect a fault in that rule (twic
 ## Verifying the state yourself
 
 ```
-mix deps.get && mix test          # 274 tests, 12 properties
+mix deps.get && mix test          # count moves; read it from the run, not from here
 mix format --check-formatted      # clean
 mix compile --warnings-as-errors  # clean
 ```
