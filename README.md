@@ -178,6 +178,22 @@ file · **3** mutation changed nothing.
 ⚠️ **A weakening mutation always survives and proves nothing** — invert the assertion or break the
 mechanism instead.
 
+## Briefing a Sol implementer
+
+`bin/` and `docs/design/0010` are the pattern: **write the conformance vectors before the
+implementation**, so a reimplementation fails immediately rather than plausibly, and so there is
+something independent to check the result against afterwards. Verify the returned vectors against
+the reference **in both directions** — a test that hard-codes hashes its own implementation produced
+is self-consistent and worthless.
+
+⭐ **Give the brief an explicit way to say "this arm cannot be written honestly."** A round that ends
+**red for a named reason** is worth more than one that ends green: the alternative is an invented
+sentinel manufacturing a pass. Borrowed from `commonplace-value`, whose round hit exactly this and
+whose implementer correctly left the gate red rather than fabricate one — the premise then turned
+out to be untestable on that OTP version, which is a **finding**, not a failure.
+
+⚠️ Name what the sandbox masks in the brief, so a negative result can be read rather than believed.
+
 ## Standing cautions for whoever reads this next
 
 ⛔ **Do not tidy `test/epoch_boundary_test.exs` into "every fork mints an epoch".** A fork that
