@@ -155,10 +155,17 @@ its README for the same reason; this is the counterpart.
 4. ⛔ **The monolith is proposed as a consumer of `commonplace-merkle-crdt`** — that revives the
    `commonplace` → `yepochs` gate transitively, and it is a new decision rather than a consequence
    of the 2026-08-24 grant. See the standing cautions below.
-5. **A snapshot algorithm version is proposed** — §21 requires a new version for any change that can
+5. ⭐ **This repo's `yelixer` pin changes** (`mix.exs` ref / `mix.lock`).
+   `commonplace-merkle-crdt` keeps a detached clone at exactly that ref
+   (`~/yelixer-pin-bc35a0e9-merkle`) and its drift test checks that clone
+   **against this repo's lock**. ⇒ Moving the pin breaks their test by design —
+   which is the point — but they should hear it from here first rather than
+   from a red suite. **They also pin this repo itself by path; tell them before
+   any behavioural change so they move that pin deliberately.**
+6. **A snapshot algorithm version is proposed** — §21 requires a new version for any change that can
    alter output bytes or mapping semantics, and deterministic minting depends on the version riding
    along with the token (`docs/design/0009`).
-6. **Anyone proposes deriving epoch identity from content** — measured impossible: a single-author
+7. **Anyone proposes deriving epoch identity from content** — measured impossible: a single-author
    re-authoring emits byte-identical output, so no pure function of the bytes distinguishes the
    namespaces (`docs/design/0008`).
 
