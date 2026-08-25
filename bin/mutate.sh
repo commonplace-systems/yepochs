@@ -26,6 +26,17 @@
 # Exit:  0 mutation was CAUGHT (gate works) · 1 mutation SURVIVED (gate suspect)
 #        2 usage/precondition · 3 mutation changed nothing (malformed)
 
+# ⭐ SAFE BY CONSTRUCTION, NOT SAFE BY THIS LINE — measured, not asserted.
+# Removing `pipefail` changes NOTHING here: all three arms (caught / survived /
+# malformed) return identical exit codes and text without it. Every gate's rc
+# comes from a command's own status — `if mix test > "$LOG"` is a REDIRECT, not
+# a pipeline — and the only pipes in this file are inside `echo "$(... | tail)"`,
+# which reports a count and gates nothing.
+# ⛔ The standard is commonplace-plan's: not "pipefail protects my gates" but
+# "no gate depends on pipefail". A gate whose gating property rests on a shell
+# option set elsewhere is ONE EDIT FROM DECORATION, and its failure mode is that
+# it proceeds. If you add a gate here, keep it a redirect or capture rc.
+# `-e` is deliberately absent: mix test's failure is HANDLED, not fatal.
 set -uo pipefail
 
 FILE="${1:-}"; OLD="${2:-}"; NEW="${3:-}"; TARGET="${4:-}"
