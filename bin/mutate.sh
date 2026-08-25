@@ -25,6 +25,7 @@
 # Usage: bin/mutate.sh <file> <old> <new> [test target]
 # Exit:  0 mutation was CAUGHT (gate works) · 1 mutation SURVIVED (gate suspect)
 #        2 usage/precondition · 3 mutation changed nothing (malformed)
+#        4 suite never ran (compile error) — NOT a catch
 #
 # Works on a file with uncommitted changes; they are preserved. See the note
 # below for the one case that is not covered (SIGKILL).
@@ -117,7 +118,18 @@ if mix test ${TARGET:+"$TARGET"} > "$LOG" 2>&1; then
   echo "   full output: $LOG"
   exit 1
 else
-  echo "✅ CAUGHT — $(grep -oE '[0-9]+ tests?, [0-9]+ failures?' "$LOG" | tail -1)"
+  COUNT="$(grep -oE '[0-9]+ tests?, [0-9]+ failures?' "$LOG" | tail -1)"
+  # ⛔ NO COUNT AT ALL MEANS THE SUITE NEVER RAN — a compile error, not a caught
+  # mutation. Both exit non-zero; only one shows the assertions saw the change.
+  # Said here rather than left to the reader: this case has been misread three
+  # times in one session by the person who wrote the warning in this header.
+  if [[ -z "$COUNT" ]]; then
+    echo "⚠️  NOT A CATCH — the suite produced no test count, so it never ran."
+    echo "   This is almost certainly a COMPILE ERROR from a malformed mutation."
+    echo "   full output: $LOG"
+    exit 4
+  fi
+  echo "✅ CAUGHT — $COUNT"
   # ⭐ Name every failing test, in full. If a name here is NOT one you expected
   # this mutation to break, you have found something else — do not re-run before
   # reading $LOG.

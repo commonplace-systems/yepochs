@@ -201,6 +201,19 @@ out to be untestable on that OTP version, which is a **finding**, not a failure.
 
 ⚠️ Name what the sandbox masks in the brief, so a negative result can be read rather than believed.
 
+⛔ **Counting rounds in flight: count distinct PGIDs of processes whose `comm` is exactly `codex`.**
+
+```bash
+pgrep -u "$USER" -x codex | xargs -r ps -o pgid= -p | tr -d ' ' | sort -u | grep -c '[0-9]'
+```
+
+⚠️ **Not `pgrep -f 'codex exec'` or `ps -eo args | grep -c codex`.** A command-line match counts
+**four processes per round** (bwrap parents and node wrappers), so two rounds read as eight — and any
+concurrency figure recorded beside a test failure is then on an axis 4× too large, putting every
+later correlation on wrong ground. ⛔ `-f` also matches **your own command line**, which is its own
+trap. ⚠️ I used the `-f` form once this session and it returned the right answer only because the
+true count was **zero**, which is robust to over-counting. A nonzero would have been wrong.
+
 ## Standing cautions for whoever reads this next
 
 ⛔ **Do not tidy `test/epoch_boundary_test.exs` into "every fork mints an epoch".** A fork that
