@@ -193,6 +193,38 @@ confirmed **by running the gate** (rc 76), not by observing that the file exists
 ⇒ ⭐ **Before claiming an interlock protects you, run it.** A protection asserted from memory of
 having built it is the same class as a threshold quoted from memory of having measured it.
 
+## ⚠️ A negative result whose fixture omitted the necessary condition
+
+Another door reported that an EXIT trap's failing last command rewrites a script's exit code,
+relabelling a successful run as a failure. Both scripts here have EXIT traps and return meaningful
+codes (3, 5, 76, the wrapped status), so I tested it. **Four probes, all clean:**
+
+```
+trap 'false'                  ; exit 0        → 0
+trap 'kill <dead pid>'        ; exit 5        → 5
+trap 'kill <dead pid>'  falls off end         → 0
+trap 'kill <dead pid>'  explicit exit 0       → 0
+```
+
+⛔ **I was one message from reporting "does not reproduce" against a filed fix.** Then:
+
+```
+set -euo pipefail ; trap 'kill "$p" 2>/dev/null' EXIT ; true   → 1   ⬅ REPRODUCES
+```
+
+⭐⭐ **`set -e` is the necessary condition, and every one of my four probes omitted it.** A negative
+result from a fixture that cannot reach the state the claim is about is **indistinguishable from a
+real absence** — and mine would have been loud, because it contradicted someone's committed fix.
+
+⇒ ✅ **Cheap conditional rule: `grep -n '^set ' <script>`. No `-e` ⇒ the class cannot reach you.**
+
+**Here:** neither script sets `-e`, so this is the **incidental** kind — safe by a flag's absence.
+- `box-sample.sh` already carries `|| true` on `kill`/`wait`, so it holds under a forced `set -e`
+  (verified: a wrapped `exit 9` still yields 9).
+- `mutate.sh`'s trap is `cp "$BACKUP" "$FILE"; rm -f "$BACKUP"` — the last command returns 0, so it
+  is well-ordered. ⭐ **Labelled rather than banked, and deliberately NOT "hardened":** silencing the
+  `cp` would be wrong, because a failed restore must surface.
+
 ## ⛔ Known non-guards
 
 - `bin/box-sample.sh` **reports, it does not gate.** Checked rather than assumed: the only exits are
