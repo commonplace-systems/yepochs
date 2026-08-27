@@ -30,6 +30,12 @@
 #        2 usage/precondition · 3 mutation changed nothing (malformed)
 #        4 suite never ran (compile error) — NOT a catch
 #        5 the mutation ALSO CHANGED THE EXPECTATIONS — no verdict available
+#        6 the TARGET holds its own expectations (a doctest) — face (3) is
+#          unobservable here, so no verdict is possible; nothing was changed
+# ⚠️ `2` deliberately covers two states (bad usage · unverifiable backup): both
+#   mean "nothing was changed, fix the invocation or the environment", and no
+#   caller acts differently on them. Codes 5 and 6 do differ in remedy, which is
+#   why they were split.
 #
 # Works on a file with uncommitted changes; they are preserved. See the note
 # below for the one case that is not covered (SIGKILL).
@@ -80,12 +86,22 @@ if [[ "${1:-}" == "--self-test" ]]; then
   "$0" --dry-run "$TESTF" 'assert' 'refute' >/dev/null 2>&1
   [[ $? -eq 5 ]] || { echo "SELF-TEST FAILED: face (3) did not return 5"; exit 1; }
 
+  # ⛔ CODE 6 MUST NOT COLLIDE WITH 5. A target holding its own expectations is a
+  # different state from a mutation that moved them, and an arm that only checks
+  # "it refused" cannot tell them apart -- which is the defect this split fixes.
+  DOCF="$(mktemp -d)/doctest_probe.ex"
+  printf 'defmodule P do\n  @doc """\n  iex> :ok\n  :ok\n  """\n  def p, do: :ok\nend\n' > "$DOCF"
+  "$0" --dry-run "$DOCF" 'defmodule' 'defmodulex' >/dev/null 2>&1
+  rc=$?
+  rm -rf "$(dirname "$DOCF")"
+  [[ $rc -eq 6 ]] || { echo "SELF-TEST FAILED: doctest guard returned $rc, want 6"; exit 1; }
+
   # ⛔ AND THE RESTORE IS PART OF THE CONTRACT: three mutations were applied to
   # real files. If any survived, the tool is worse than useless.
   AFTER="$(git status --porcelain | sha256sum)"
   [[ "$BEFORE" == "$AFTER" ]] || { echo "SELF-TEST FAILED: tree not restored"; exit 1; }
 
-  echo "self-test ok: green=0 face1=3 face3=5, tree restored"
+  echo "self-test ok: green=0 face1=3 face3=5 doctest=6, tree restored"
   exit 0
 fi
 
@@ -175,7 +191,14 @@ if grep -q 'iex>' "$FILE" 2>/dev/null; then
   echo "   verdict this tool cannot support."
   echo "   ⇒ Scope the mutation to a line, or move the example into test/."
   echo "   Nothing was changed."
-  exit 5
+  # ⛔ CODE 6, NOT 5. These are DIFFERENT STATES WITH DIFFERENT REMEDIES and they
+  # shared a code until 2026-08-27: this one is "the target holds its own
+  # expectations, so face (3) is UNOBSERVABLE here" (refused BEFORE mutating,
+  # nothing changed); code 5 is "the mutation MOVED the expectations" (detected
+  # AFTER mutating). ⭐ Two states that share an exit code are indistinguishable
+  # to anything reading the code -- and the caller that most needs to tell them
+  # apart is a script, which cannot read the message above.
+  exit 6
 fi
 
 BACKUP="$(mktemp)"

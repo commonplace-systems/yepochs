@@ -248,6 +248,29 @@ local. `.slot-protocol` is untracked by design (a clone must be fail-open), so b
 on a file that is silently removable — and I removed it myself once, in a test teardown. **Deployed
 mechanism, local arming state; verify both.**
 
+## 🔢 Two states sharing one exit code are indistinguishable to a script
+
+⛔ **`bin/mutate.sh` returned `5` for two different conditions until 2026-08-27:**
+
+| condition | when | remedy |
+|---|---|---|
+| the mutation **moved** the expectations | detected **after** mutating | scope the substitution to the asserted line |
+| the target **holds its own** expectations (a doctest) | refused **before** mutating | move the example into `test/`, or scope by line |
+
+⭐ **A human reads the message; a caller reads the code.** The two remedies differ, so collapsing
+them meant an automated caller could not act on either. Split: the doctest guard is now **6**.
+
+✅ **Demonstrated red as well as green:** collapsing 6 back onto 5 → `SELF-TEST FAILED: doctest
+guard returned 5, want 6` (rc 1); restored → green, file byte-identical.
+
+⚠️ **`2` still deliberately covers two states** (bad usage · unverifiable backup) — both mean
+"nothing was changed, fix the invocation or the environment", and no caller acts differently on
+them. **Kept as a decision, written in the file, so a later reader does not "fix" the asymmetry.**
+
+⇒ ⭐ **The general form, from a door whose branch guard returned the same code as its slot gate:
+an exit code that answers two questions is silent about which one you asked** — and the reader most
+in need of the distinction is the one that cannot see the message.
+
 ## ⛔ Known non-guards
 
 - `bin/box-sample.sh` **reports, it does not gate.** Checked rather than assumed: the only exits are
