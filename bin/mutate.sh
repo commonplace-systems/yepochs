@@ -73,28 +73,38 @@ if [[ "${1:-}" == "--self-test" ]]; then
 
   BEFORE="$(git status --porcelain | sha256sum)"
 
+  # ⛔ ASSERT THE rc AND THE TEXT. An rc is a small integer namespace and arms
+  # COLLIDE in it -- and the arms that share a code are precisely the ones a
+  # designer thinks of as "the same kind of refusal", which is when they shadow
+  # each other. This file already has `2` covering two states deliberately.
+  # ⭐ An arm checked by rc alone accepts a refusal from a DIFFERENT guard.
+  arm() {  # arm <want_rc> <want_substring> <label> -- then the real args
+    local want_rc="$1" want_txt="$2" label="$3"; shift 3
+    local out rc
+    out="$("$0" "$@" 2>&1)"; rc=$?
+    [[ $rc -eq $want_rc ]] || { echo "SELF-TEST FAILED: $label rc=$rc, want $want_rc"; exit 1; }
+    [[ "$out" == *"$want_txt"* ]] || {
+      echo "SELF-TEST FAILED: $label returned $rc but not from the expected arm"
+      echo "  wanted text: $want_txt"; exit 1; }
+  }
+
   # GREEN: a lib mutation leaves test/ untouched -> guard passes, no suite run.
-  "$0" --dry-run "$LIBF" 'defmodule' 'defmodulex' >/dev/null 2>&1
-  [[ $? -eq 0 ]] || { echo "SELF-TEST FAILED: green arm did not return 0"; exit 1; }
+  arm 0 "expectation guard PASSED" "green" --dry-run "$LIBF" 'defmodule' 'defmodulex'
 
   # FACE (1): a substitution that matches nothing must be MALFORMED, not a
   # verdict. An unchanged file passing reads exactly like a working gate.
-  "$0" --dry-run "$LIBF" 'zzz-absent-token-zzz' 'x' >/dev/null 2>&1
-  [[ $? -eq 3 ]] || { echo "SELF-TEST FAILED: face (1) did not return 3"; exit 1; }
+  arm 3 "changed no bytes" "face (1)" --dry-run "$LIBF" 'zzz-absent-token-zzz' 'x'
 
   # FACE (3): mutating a test file moves the expectation with the target.
-  "$0" --dry-run "$TESTF" 'assert' 'refute' >/dev/null 2>&1
-  [[ $? -eq 5 ]] || { echo "SELF-TEST FAILED: face (3) did not return 5"; exit 1; }
+  arm 5 "ALSO CHANGED THE EXPECTATIONS" "face (3)" --dry-run "$TESTF" 'assert' 'refute'
 
   # ⛔ CODE 6 MUST NOT COLLIDE WITH 5. A target holding its own expectations is a
   # different state from a mutation that moved them, and an arm that only checks
   # "it refused" cannot tell them apart -- which is the defect this split fixes.
   DOCF="$(mktemp -d)/doctest_probe.ex"
   printf 'defmodule P do\n  @doc """\n  iex> :ok\n  :ok\n  """\n  def p, do: :ok\nend\n' > "$DOCF"
-  "$0" --dry-run "$DOCF" 'defmodule' 'defmodulex' >/dev/null 2>&1
-  rc=$?
+  arm 6 "CONTAINS ITS OWN EXPECTATIONS" "doctest" --dry-run "$DOCF" 'defmodule' 'defmodulex'
   rm -rf "$(dirname "$DOCF")"
-  [[ $rc -eq 6 ]] || { echo "SELF-TEST FAILED: doctest guard returned $rc, want 6"; exit 1; }
 
   # ⛔ AND THE RESTORE IS PART OF THE CONTRACT: three mutations were applied to
   # real files. If any survived, the tool is worse than useless.

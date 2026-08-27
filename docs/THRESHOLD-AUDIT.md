@@ -298,6 +298,24 @@ them. **Kept as a decision, written in the file, so a later reader does not "fix
 an exit code that answers two questions is silent about which one you asked** — and the reader most
 in need of the distinction is the one that cannot see the message.
 
+### And splitting codes is not enough — assert the rc AND the text
+
+⛔ **An rc is a small integer namespace, and the arms that share a code are precisely the ones a
+designer thinks of as "the same kind of refusal" — which is when they shadow each other.** Elsewhere
+tonight a forced-floor demo passed while a *different* arm fired and returned the expected number.
+
+✅ **`--self-test` now asserts a distinctive substring alongside every code**, so an arm cannot be
+satisfied by a refusal from a different guard. **Demonstrated by changing only the MESSAGE and
+leaving `exit 3` untouched:**
+
+```
+SELF-TEST FAILED: face (1) returned 3 but not from the expected arm
+  wanted text: changed no bytes
+```
+
+⭐ **The rc matched and the arm did not — which is the whole failure mode, and it is invisible to
+any rc-only check.** Restored → green, file byte-identical.
+
 ## ⛔ Known non-guards
 
 - `bin/box-sample.sh` **reports, it does not gate.** Checked rather than assumed: the only exits are
