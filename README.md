@@ -254,6 +254,31 @@ out to be untestable on that OTP version, which is a **finding**, not a failure.
 
 ⚠️ Name what the sandbox masks in the brief, so a negative result can be read rather than believed.
 
+⛔ **And here is the list, because an instruction to "name what it masks" that does not name them
+cannot be followed from this file.** Measured 2026-08-27; the fence hides `~/.ssh`, `~/.config/gh`,
+`~/.claude/channels`, and tmux/system sockets.
+⇒ ⭐ **ANYTHING MEASURED INSIDE THE FENCE INHERITS THE FENCE AS A FACT.** An implementer reporting
+"no credentials found", "the channel is empty", or "gh is unavailable" is reporting the sandbox, not
+the world — and that reads identically to a finding about the repo.
+
+### The runner, and what it does not do
+
+⛔ **`sol-egress-run.sh` is the runner *WITH* egress. The filename reads like the opposite.** It
+lives in **another agent's tree** (`~/boss-clod/`), so invoking it is a **runtime read of someone
+else's working copy**: it can be mid-edit when you run it, exactly as a shared health script can.
+⇒ **Verify by sha when it matters, and treat a syntax error from it as an editing event rather than
+a defect in your own round.**
+
+⚠️ `SOL_MAX_PARALLEL` defaults to **2**.
+
+⛔⛔ **SOL CANNOT COMMIT.** The dispatcher commits on its behalf — so a round that "finished" leaves
+the work in the tree and nowhere else. **Check the tree, not the transcript.**
+
+⚠️ This dispatch is **hand-typed, not scripted, in this repo.** That is the third position in the
+artifact trade: a shared copy is exposed to *tearing*, a private copy to *drift*, and **no artifact
+at all to non-repeatability — no fixed referent to be wrong the same way twice.** Recorded as a known
+gap rather than presented as lightness.
+
 ⛔ **Counting rounds in flight: count distinct PGIDs of processes whose `comm` is exactly `codex`.**
 
 ```bash
