@@ -480,6 +480,35 @@ from a statement that has already finished. **Every interactive call this sessio
 it **fails loudly** on a wrong target (`fatal: not a git repository`) where an inherited `cwd`
 silently succeeds against whatever is there.
 
+## 🔁 The reporting line failed FIVE times at this door — one class, counted
+
+Each printed a plausible number; each was a **static conclusion beside a measurement it
+contradicted**, or a selector that could not match what it named:
+
+| # | what printed | what was true |
+|---|---|---|
+| 1 | `before=3 peak=4 (equal ⇒ no BEAM started)` | 3 ≠ 4; the verdict was hardcoded |
+| 2 | `newest _build: 22:52:51` | `%TH:%TM:%TS` sorted **across dates** — a file from another day |
+| 3 | ten memories "not in repo" | probes were 28-char truncations of *description* lines |
+| 4 | `(files newer than 5 min: 0)` | `bfs` rejected `-newermt '-5 minutes'`; rc 0, no output |
+| 5 | `beam-counting in box-sample.sh: ⇒ 0` | the line above it measured **4** |
+
+⇒ ⭐ **In every case the correction was already on the screen.** #1, #2 and #5 printed the
+contradicting number one line above the false conclusion. **A reporting line that states the
+conclusion instead of deriving it cannot be repaired by fixing the measurement.**
+
+## 🔧 An instrument I owned and did not consult
+
+⛔ **Asked *what already answers this?* about the tools built tonight.** One real hit: to test
+whether the self-tests start a BEAM I hand-rolled a during-run sampler — `mine()`/`all()` plus a
+`while kill -0` loop. **`bin/box-sample.sh`, written the same day, already contained both the
+during-run sampling shape and a `pgrep -x beam.smp` + `/proc/PID/cwd` enumeration** (it uses them to
+locate the serve). I first wrote here that it "shares the shape, not the subject" — **that was
+wrong, and the grep printed `4` on the same screen.**
+⇒ ⭐⭐ **The floor under this, and it covers every unconsulted-instrument case tonight: A FILED
+ARTIFACT ONLY FIRES ON THE PATH THAT INVOKES IT. A check wired into `mix check` does not protect a
+command typed at a prompt** — and every incident here, mine included, was typed.
+
 ## ⛔ Known non-guards
 
 - `bin/box-sample.sh` **reports, it does not gate.** Checked rather than assumed: the only exits are
