@@ -48,6 +48,47 @@
 set -uo pipefail
 
 DRY_RUN=0
+
+# ⭐ --self-test EXERCISES THE SHIPPED SCRIPT, NOT COPIES OF ITS PREDICATES.
+# It re-invokes "$0" with real arguments and asserts the EXIT CODES, so every
+# arm travels the same path a caller does. A demonstration against a duplicate
+# proves the duplicate.
+# ⛔ These arms were demonstrated BY HAND on 2026-08-27 and a hand
+# demonstration does not fire again. Zero test runs: every arm is --dry-run or
+# refused before the suite is reached.
+if [[ "${1:-}" == "--self-test" ]]; then
+  LIBF="$(ls lib/yepochs/*.ex 2>/dev/null | head -1)"
+  TESTF="$(ls test/*_test.exs 2>/dev/null | head -1)"
+  # ⛔ PROVE THE CORPUS IS NON-EMPTY BEFORE TRUSTING ANY RESULT FROM IT. A
+  # missing fixture would make every arm below fail for the wrong reason.
+  [[ -n "$LIBF" && -n "$TESTF" ]] || { echo "SELF-TEST BLIND: no lib/test fixture found"; exit 2; }
+  grep -q defmodule "$LIBF" || { echo "SELF-TEST BLIND: 'defmodule' absent from $LIBF"; exit 2; }
+  grep -q assert "$TESTF"    || { echo "SELF-TEST BLIND: 'assert' absent from $TESTF"; exit 2; }
+
+  BEFORE="$(git status --porcelain | sha256sum)"
+
+  # GREEN: a lib mutation leaves test/ untouched -> guard passes, no suite run.
+  "$0" --dry-run "$LIBF" 'defmodule' 'defmodulex' >/dev/null 2>&1
+  [[ $? -eq 0 ]] || { echo "SELF-TEST FAILED: green arm did not return 0"; exit 1; }
+
+  # FACE (1): a substitution that matches nothing must be MALFORMED, not a
+  # verdict. An unchanged file passing reads exactly like a working gate.
+  "$0" --dry-run "$LIBF" 'zzz-absent-token-zzz' 'x' >/dev/null 2>&1
+  [[ $? -eq 3 ]] || { echo "SELF-TEST FAILED: face (1) did not return 3"; exit 1; }
+
+  # FACE (3): mutating a test file moves the expectation with the target.
+  "$0" --dry-run "$TESTF" 'assert' 'refute' >/dev/null 2>&1
+  [[ $? -eq 5 ]] || { echo "SELF-TEST FAILED: face (3) did not return 5"; exit 1; }
+
+  # ⛔ AND THE RESTORE IS PART OF THE CONTRACT: three mutations were applied to
+  # real files. If any survived, the tool is worse than useless.
+  AFTER="$(git status --porcelain | sha256sum)"
+  [[ "$BEFORE" == "$AFTER" ]] || { echo "SELF-TEST FAILED: tree not restored"; exit 1; }
+
+  echo "self-test ok: green=0 face1=3 face3=5, tree restored"
+  exit 0
+fi
+
 if [[ "${1:-}" == "--dry-run" ]]; then DRY_RUN=1; shift; fi
 
 FILE="${1:-}"; OLD="${2:-}"; NEW="${3:-}"; TARGET="${4:-}"
