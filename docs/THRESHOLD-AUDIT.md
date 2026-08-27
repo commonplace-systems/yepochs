@@ -39,12 +39,27 @@ demonstrated one).
 | arm | reachable? | evidence |
 |---|---|---|
 | `exit 2` — "could not take a verified backup" | ✅ **YES, and now demonstrated** | induced by pointing `TMPDIR` at a non-existent dir: `mktemp` fails → `cp` fails → **rc 2, "refusing to mutate", target untouched** |
-| `exit 4` — "suite produced no test count, so it never ran" | ⛔ **not reachable without a slot** | it sits *after* `mix test`; reaching it needs a suite run **and** a deliberately induced compile error |
+| `exit 4` — "suite produced no test count, so it never ran" | ⛔ **DOWNSTREAM OF THE GUARDED ACTION** | it *reads the result of* `mix test`; no stub reaches it, and demonstrating it means doing the work |
 
 ⭐ **The backup arm is the one that matters most and had never fired.** It exists because an
 unverified `cp` leaves `$BACKUP` empty, and the EXIT trap would then restore that empty file **over
 the caller's source** — a safety mechanism causing the exact harm it exists to prevent. **Now seen
 refusing, with the target verified untouched.**
+
+⭐⭐ **AND `exit 4` IS A THIRD CATEGORY, NOT JUST AN EXPENSIVE ONE.** For a gate that guards an
+action, the red arm is cheap and **the green arm IS the action** — the fix is to *stub at the action,
+not at the threshold*. ⛔ **But a refusal that sits DOWNSTREAM of the action reads its result, so
+there is nothing to stub:** `exit 4` fires on `mix test` having produced no test count, which cannot
+be observed without running `mix test`. **Naming the category rather than pretending the one-line
+fix covers it.**
+
+✅ **My green arms are the stubbed-at-the-action kind, verified behaviourally rather than by
+reading:** the self-test's green arm goes through `--dry-run`, which exits at `bin/mutate.sh:261`
+while `mix test` is at `:281`; BEAM count sampled through all four cheap paths reads `peak == before`
+against a positive control that goes 4→5.
+⚠️ **And that is INCIDENTAL, not designed: `--dry-run` exists because I wanted the arms cheap on a
+busy box, not because I had seen this failure mode. One refactor moving that exit below `mix test`
+arms it silently.**
 
 ⚠️ **`exit 4` stays labelled UNEXERCISED.** I will not induce a compile error during a slot granted
 for something else, and manufacturing the condition to close a row is the cheap version.
@@ -380,6 +395,17 @@ something specific enough to be wrong.**
 ⚠️ **And the reason this section exists rather than a note in each incident: the fourth instance
 looked like diligence while I was producing it.** Counting hits, publishing a number, reporting a
 verified state — **all four felt like the careful version of what I was doing.**
+
+## ✅ Commit hygiene — audited, not assumed
+
+⛔ **`git commit -a` means never naming what you commit, so nothing in the command can disagree with
+your belief about where you are.** Elsewhere tonight a `cd` outlived the statement it was written
+for and a `-a` swept another repo's uncommitted working state into a push.
+
+**Audited here rather than asserted** — every path touched by tonight's commits:
+`.gitignore` · `README.md` · `bin/{box-sample,mutate,require-slot,with-slot}.sh` ·
+`docs/THRESHOLD-AUDIT.md` · `docs/design/0011-…md` · `mix.exs` · `test/fixture_coverage_test.exs`.
+**Nothing outside the paths I named**, and every commit used `git add <paths>`, never `-a`.
 
 ## ⛔ Known non-guards
 
