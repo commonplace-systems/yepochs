@@ -17,7 +17,16 @@ defmodule Yepochs.MixProject do
         # which reads like a flake rather than a missing stage.
         # ⇒ Run the first three in :test (see `def cli`) and shell out for
         # dialyzer with its own env.
+        # ⭐ THE SHELL SELF-TESTS RUN FIRST AND COST NOTHING. They were written
+        # 2026-08-27 and NOTHING RAN THEM -- the same defect as `mix check`
+        # itself having been documented for days and never once executed. A
+        # gate nobody invokes is a remembered rule with a citation.
+        # ⚠️ A Mix alias does NOT short-circuit (measured, docs/design/0011):
+        # a failing stage still runs the later ones, though the alias's rc is
+        # preserved. These are placed first so their output is not buried.
         check: [
+          "cmd bin/mutate.sh --self-test",
+          "cmd bin/box-sample.sh --self-test",
           "format --check-formatted",
           "compile --warnings-as-errors",
           "test",
