@@ -92,7 +92,33 @@ if [[ "${1:-}" == "--self-test" ]]; then
   [[ "$got" == "100" ]] || { echo "SELF-TEST FAILED: ascending -> $got"; exit 1; }
   got="$(printf '300\n200\n100\n' | min_of)"
   [[ "$got" == "100" ]] || { echo "SELF-TEST FAILED: descending -> $got"; exit 1; }
-  echo "self-test ok: dip=934 empty=NONE ascending=100 descending=100"
+  # ⭐ max_of, the OTHER reducer -- it feeds the reserve term.
+  got="$(printf '297\n1803\n345\n' | max_of)"
+  [[ "$got" == "1803" ]] || { echo "SELF-TEST FAILED: max -> $got, want 1803"; exit 1; }
+  got="$(printf '' | max_of)"
+  [[ "$got" == "NONE" ]] || { echo "SELF-TEST FAILED: max empty -> $got, want NONE"; exit 1; }
+
+  # ⛔⛔ THESE TWO ARMS EXIST BECAUSE THEY WERE MISSING WHILE I "DEMONSTRATED"
+  # THEM. A REACHABILITY OR SELF CHECK IS ITSELF A CHECK, SO IT MUST TEST THE
+  # THING UNDER TEST -- and I had exercised `is_num` from a RE-DECLARED COPY in
+  # a `bash -c`, and `serve_hwm_mb` from a `sed`-EXTRACTED COPY. Both passed.
+  # Neither touched the function this script actually calls.
+  # ⇒ A demonstration against a duplicate proves the duplicate.
+  for v in 12 -3 0; do
+    is_num "$v" || { echo "SELF-TEST FAILED: is_num rejected [$v]"; exit 1; }
+  done
+  for v in "" "NONE" "1.5" "12x" " 12"; do
+    ! is_num "$v" || { echo "SELF-TEST FAILED: is_num accepted [$v]"; exit 1; }
+  done
+
+  # ⛔ An unverifiable reading must resolve to NO NUMBER -- not to the
+  # comfortable one and NOT TO THE CAUTIOUS ONE. "I could not read it" is a
+  # THIRD STATE. pid 0 has no /proc/0/status on Linux.
+  got="$(serve_hwm_mb 0)"
+  [[ -z "$got" ]] || { echo "SELF-TEST FAILED: unreadable pid -> [$got], want empty"; exit 1; }
+  is_num "$got" && { echo "SELF-TEST FAILED: unreadable pid reached arithmetic"; exit 1; }
+
+  echo "self-test ok: min(dip/empty/asc/desc) max(peak/empty) is_num(3 accept,5 reject) hwm(unreadable=empty)"
   exit 0
 fi
 
