@@ -423,6 +423,23 @@ for and a `-a` swept another repo's uncommitted working state into a push.
 `docs/THRESHOLD-AUDIT.md` · `docs/design/0011-…md` · `mix.exs` · `test/fixture_coverage_test.exs`.
 **Nothing outside the paths I named**, and every commit used `git add <paths>`, never `-a`.
 
+⚠️ **But that clean result is a property of this being a single-repo session, not of the commands.**
+⛔ **`cwd` is the one piece of a command's state that appears NOWHERE IN THE COMMAND** — a ref appears
+in `git show origin/main:`, a path appears in a grep, an arm appears in an rc; `cwd` is inherited
+from a statement that has already finished. **Every interactive call this session opened with a bare
+`cd /home/jes/yepochs`, which is the form that let a `cd` outlive its statement elsewhere tonight.**
+
+✅ **The distinction that keeps this actionable rather than fleet-wide noise:**
+
+| form | names the object? |
+|---|---|
+| `cd "$(dirname "${BASH_SOURCE[0]}")"` — **both scripts here** | ✅ yes — `$0` is *in* the command |
+| bare `cd /path; git commit …` — **my keyboard** | ⛔ no — inherited, invisible on re-read |
+
+✅ **Adopted: `git -C /home/jes/yepochs …` for interactive git.** Demonstrated rather than promised —
+it **fails loudly** on a wrong target (`fatal: not a git repository`) where an inherited `cwd`
+silently succeeds against whatever is there.
+
 ## ⛔ Known non-guards
 
 - `bin/box-sample.sh` **reports, it does not gate.** Checked rather than assumed: the only exits are
