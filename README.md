@@ -5,9 +5,24 @@ extracted into its own package.
 
 ## Status
 
-**Measured at `55bd714` (2026-08-27 17:58Z, `mix check`): spec r3 §6–§24 implemented, epoch-token
-minting shipped, 629 runner tests + 12 properties, 0 failures, Dialyzer 0 errors; consumed by
-`commonplace-merkle-crdt` for compaction openers.**
+**Last full `mix check` ran against the tree at `00a1102` (2026-08-27, under `bin/box-sample.sh`):
+spec r3 §6–§24 implemented, epoch-token minting shipped, 629 runner tests + 12 properties,
+0 failures, Dialyzer `Total errors: 0`; consumed by `commonplace-merkle-crdt` for compaction
+openers.**
+
+⛔ **A RUN IS EVIDENCE ABOUT THE SHA IT RAN AGAINST AND DOES NOT TRAVEL FORWARD.** This line
+previously named `55bd714` — **thirty commits stale, and `test/` had changed between that sha and
+the run that produced these numbers.** The verdict was right and the referent was wrong, which is
+the shape that does not read as an error.
+
+✅ **What makes the numbers still load-bearing is not the date but a CHECKABLE INVARIANT: no commit
+since `00a1102` has touched `lib/` or `test/`.** Verify in one command, and trust the command
+rather than this sentence:
+```sh
+git diff --name-only 00a1102..HEAD -- lib/ test/     # empty ⇒ the verdict still covers the tree
+```
+⚠️ **Everything committed since is `bin/` and `docs/`.** Those cannot change the suite's verdict —
+**which is a different claim from "they were gated", and this file says which one it means.**
 
 ⚠️ **This line is rewritten at every landing and is never appended below.** A count without the sha
 it was measured at is a claim about a moment nobody can identify.
