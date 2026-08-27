@@ -89,6 +89,35 @@ which takes the token and *then* delegates here. Invoking the sampler directly w
 command is outside the interlock **on purpose**, and that is now written in the file rather than
 inferred from its absence.
 
+## 👁 Observing the object, instead of fixing the selector
+
+⛔ **Both enumerations above are SELECTORS, and a literal selector cannot answer a semantic
+question.** "Does this start a suite?" is about *behaviour*; grep answers only about *text*. Every
+repair I made was a better proxy, never the thing.
+
+✅ **Measured instead — BEAM count sampled at 100 ms through each invocation, beside the clock:**
+
+| invocation | BEAMs before | peak | ms |
+|---|---|---|---|
+| `mutate.sh --self-test` | 4 | **4** | 1161 |
+| `mutate.sh --dry-run …` | 4 | **4** | 203 |
+| `box-sample.sh --self-test` | 4 | **4** | 278 |
+| `require-slot.sh` | 4 | **4** | 214 |
+| ⭐ **positive control** — `elixir -e ':timer.sleep(1500)'` | 4 | **5** | 4643 |
+
+⭐ **The control is the row that makes the other four mean anything.** Four zeros from a harness
+never shown to detect a start are indistinguishable from four zeros from a blind harness. It
+detects one, so these are absences rather than silence.
+
+⚠️ **Both limits, because neither instrument covers the other:**
+- **A clock and a process count answer "did THIS INVOCATION start a suite", not "can this file
+  ever."** A branch not taken stays invisible.
+- **A process count under-reports** (a start and exit between two samples is missed) — safe for
+  *this* question, since a missed start can only make me over-cautious, not under.
+
+⇒ **When a selector and a behavioural measurement disagree, the measurement wins on the invocation
+it covers — and the disagreement bounds the claim rather than licensing another pattern edit.**
+
 ## ⛔ Known non-guards
 
 - `bin/box-sample.sh` **reports, it does not gate.** Checked rather than assumed: the only exits are
