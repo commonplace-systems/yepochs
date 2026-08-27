@@ -22,13 +22,16 @@
 #   is ornamental. Mutate by INVERTING or by breaking the mechanism, not by
 #   loosening. (Demonstrated: DEMO 4 in the commit that added this file.)
 #
-# ⭐ WHICH OF THIS SCRIPT'S ARMS ARE ACTUALLY PROVEN — and which are latent, which have
-#   unexercised wiring, and which is DOWNSTREAM OF THE GUARDED ACTION and cannot be
-#   stubbed at all — is recorded in docs/THRESHOLD-AUDIT.md. Read it before trusting a
-#   green from here.
-# ⛔ The pointer is HERE, in the script you are running, because a filed artifact fires
-#   only if something reads it: that audit had one referrer (README) and none from the
-#   scripts it documents.
+# ⛔ THE GAPS, STATED HERE RATHER THAN LINKED, so you learn them without following anything:
+#   · `exit 4` (suite never ran) is DOWNSTREAM OF `mix test` — nothing can stub it, and it has
+#     NEVER been exercised. A green from this script has never had that arm behind it.
+#   · The self-test's GREEN arm goes through `--dry-run`, which EXITS BEFORE `mix test`. It
+#     proves the guards return 0 and then STOPS; it does NOT walk the real path to the suite.
+#   · The slot refusal depends on `.slot-protocol`, which is untracked and silently removable.
+#     It was deleted twice on 2026-08-27 by the teardown of the test that exercises the gate.
+# ⇒ Full row-by-row status in docs/THRESHOLD-AUDIT.md. The pointer is HERE, in the script you
+#   are running, because a filed artifact fires only if something reads it — that audit had one
+#   referrer (README) and none from the scripts it documents.
 #
 # Usage: bin/mutate.sh [--dry-run] <file> <old> <new> [test target]
 #   --dry-run applies the mutation, runs the expectation guard, restores, and

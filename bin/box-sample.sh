@@ -9,13 +9,14 @@
 #
 # ⭐ The minimum is the number. You cannot get a minimum from the endpoints.
 #
-# ⭐ WHICH OF THIS SCRIPT'S ARMS ARE ACTUALLY PROVEN — and which are latent, which have
-#   unexercised wiring, and which is DOWNSTREAM OF THE GUARDED ACTION and cannot be
-#   stubbed at all — is recorded in docs/THRESHOLD-AUDIT.md. Read it before trusting a
-#   green from here.
-# ⛔ The pointer is HERE, in the script you are running, because a filed artifact fires
-#   only if something reads it: that audit had one referrer (README) and none from the
-#   scripts it documents.
+# ⛔ THE GAPS, STATED HERE RATHER THAN LINKED:
+#   · This script REPORTS and does not GATE — it exits with the wrapped command's status, so
+#     nothing here refuses anything. The interlock is bin/with-slot.sh, which takes a token and
+#     THEN delegates here. Invoking this directly with an expensive command is OUTSIDE it.
+#   · A `/proc` read failing on a pid that WAS found is handled but has never been exercised;
+#     only the bogus-pid predicate has. Those are different absences on different code paths.
+# ⇒ Full row-by-row status in docs/THRESHOLD-AUDIT.md. The pointer is HERE because a filed
+#   artifact fires only if something reads it.
 #
 # Usage:  bin/box-sample.sh [-i SECS] -- <command...>
 #         bin/box-sample.sh --self-test
