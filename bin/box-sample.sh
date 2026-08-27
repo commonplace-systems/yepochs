@@ -152,8 +152,19 @@ SAMPLER_PID=$!
 "$@"
 STATUS=$?
 
-kill "$SAMPLER_PID" 2>/dev/null
-wait "$SAMPLER_PID" 2>/dev/null
+# ⛔⛔ THE CLEANUP OF A SAMPLER MUST NEVER BE ABLE TO FAIL THE RUN IT MEASURED.
+# Measured elsewhere in this fleet: under `set -e`, `wait` on a killed child
+# exits 143 and `kill` on an already-dead pid exits 1 -- so a cleanup defect
+# killed two landings AFTER both suites had passed and BEFORE a word was
+# printed about them. A successful run left no trace and the rc named a signal
+# nothing had sent.
+# ⭐ SAFE BY CONSTRUCTION, NOT SAFE BECAUSE `-e` IS ABSENT. This file does not
+# set `-e` today, and that is the kind of protection one hygiene commit removes.
+# `|| true` holds either way.
+# ⚠️ STATUS is captured ABOVE, before any of this runs -- the wrapped command's
+# verdict must not be reachable by the teardown.
+kill "$SAMPLER_PID" 2>/dev/null || true
+wait "$SAMPLER_PID" 2>/dev/null || true
 
 N="$(wc -l < "$SAMPLES" | tr -d ' ')"
 MIN="$(min_of < "$SAMPLES")"

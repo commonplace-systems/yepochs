@@ -19,6 +19,7 @@ merge them.
 | `bin/box-sample.sh` serve NOT FOUND ⇒ UNKNOWN | ✅ | pointed at a cwd that cannot match |
 | `mix check` `test` stage catches a timeout | ✅ rc=2 `ExUnit.TimeoutError` | and `--trace` rc=0, proving the mode matters |
 | `test/fixture_coverage_test.exs` corpus check | ✅ | see LATENT below — required inducing a nested file |
+| `box-sample.sh` cleanup cannot fail the measured run | ✅ | run under a forced `set -e`: wrapped command's rc 9 survives, not the cleanup's |
 
 ## ⚠️ Predicate demonstrated · WIRING NOT
 
@@ -42,6 +43,10 @@ otherwise start lying.
 - `bin/box-sample.sh` **reports, it does not gate.** Checked rather than assumed: the only exits are
   usage (2), `--self-test` (0/1), and the wrapped command's own status. No exit sits beside a
   headroom test.
+- The sampler's teardown is **safe by construction, not safe because `-e` is absent**. Under `set -e`
+  a `wait` on a killed child exits 143 and a `kill` on a dead pid exits 1 — a cleanup defect that
+  killed two landings elsewhere tonight *after* their suites had passed and *before* anything was
+  printed. `|| true` holds regardless of what a later hygiene commit sets.
 - No reachability check exists here, because nothing in this repo gates on a moving host term. That
   is **absence, not design** — if a host-dependent gate is ever added, it needs one, kept in the
   same edit as the gate it guards.
