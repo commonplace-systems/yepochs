@@ -175,6 +175,24 @@ explicitly removed: rc 76. ⭐ Same class as reading three `rc=128`s as arms fir
 | `slot_check` refuses / passes / no-marker | ✅ all three seen |
 | `slot_consume` on a run that reaches the suite | ⛔ **UNEXERCISED** — that *is* a suite, and I hold no slot. Labelled, not manufactured. |
 
+## ⚠️ The interlock disarms SILENTLY, and I disarmed it myself
+
+⛔ **Measured 2026-08-27 18:53Z:** the operator marker `.slot-protocol` was **absent**, so the slot
+gate was fail-open and would have refused nothing. **I had removed it in the teardown of the
+composition test — the very test that exercised the gate.** ⇒ I had just told another door *"my own
+scripts refuse me"*, which was **false at the moment I wrote it**.
+
+⭐ **THE MECHANISM AND ITS OFF SWITCH ARE THE SAME FILE, AND ITS ABSENCE IS INDISTINGUISHABLE FROM
+NEVER HAVING ARMED IT.** A fail-open design is correct for a library (a clone must not be refused),
+and the price is exactly this: **disarmed and armed look identical from outside, and the disarmed
+state is the quiet one.**
+
+✅ **Detected only by VERIFYING STATE AT THE END rather than asserting it** — and re-armed, then
+confirmed **by running the gate** (rc 76), not by observing that the file exists.
+
+⇒ ⭐ **Before claiming an interlock protects you, run it.** A protection asserted from memory of
+having built it is the same class as a threshold quoted from memory of having measured it.
+
 ## ⛔ Known non-guards
 
 - `bin/box-sample.sh` **reports, it does not gate.** Checked rather than assumed: the only exits are
