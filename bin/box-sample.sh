@@ -149,6 +149,16 @@ SERVE_PID="$(serve_pid || true)"
 # command line -- the shell matches itself.
 SAMPLER_PID=$!
 
+# ⚠️ INDIRECTION: THIS LINE CAN START ANYTHING, INCLUDING A SUITE. A literal
+# grep for `mix test` is structurally blind to it -- the command is an argument,
+# not text in this file. Enumerating suite-starters by symbol misses every
+# wrapper, exactly as a repo grep misses a dependency that lives in a habit.
+# ⭐ DELIBERATELY UNGATED, and this is a decision rather than an oversight: an
+# INSTRUMENT must be usable to measure anything, and a measuring tool that
+# demands permission cannot measure the thing you needed permission to see.
+# ⇒ The gate lives in `bin/with-slot.sh`, which requires a token and THEN
+# delegates here. If you invoke this directly with an expensive command, you are
+# outside the interlock on purpose.
 "$@"
 STATUS=$?
 

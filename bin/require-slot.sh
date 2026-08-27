@@ -14,9 +14,31 @@
 # escaped at another door tonight. Stated here so no reader mistakes it for a
 # lock on the repo.
 
+# ⛔⛔ SCOPE: GATE EVERY SUITE-STARTER *YOU INVOKE AS A DOOR IN A QUEUE* -- NOT
+# EVERY SUITE-STARTER. `bin/mutate.sh` is a REPOSITORY ARTIFACT: it must work
+# for CI and for anyone who clones this tree. Gating it unconditionally on a
+# token file would ENCODE A TRANSIENT SOCIAL PROTOCOL INTO A LIBRARY, and a
+# fresh clone would refuse to run for a reason found nowhere in its history.
+#
+# ⭐ POLARITY: FAIL-OPEN FOR THE LIBRARY, FAIL-CLOSED FOR THE OPERATOR.
+# Enforcement is keyed on a marker the OPERATOR creates (`.slot-protocol`,
+# gitignored). No marker -> no gating, which is every clone and every CI run.
+# Marker present -> a token is required, which is this machine during a queue.
+#
+# ⚠️ AND THE MARKER IS THE MECHANISM, NOT MY MEMORY: it persists across
+# invocations, so "am I in a queue" is answered by the filesystem rather than
+# by whether I remembered when I typed the command.
+
 # require_slot <what>  -- refuses at 76 unless a token exists; CONSUMES it.
+# No-ops entirely unless the operator marker is present.
 require_slot() {
   local what="${1:-this run}" token="${SLOT_TOKEN:-.slot-granted}"
+  local marker="${SLOT_PROTOCOL:-.slot-protocol}"
+
+  if [[ ! -f "$marker" ]]; then
+    return 0   # not operating under a queue protocol; this is a plain repo tool
+  fi
+
   if [[ ! -f "$token" ]]; then
     echo "⛔ REFUSED rc76: no slot token at '$token' — $what was NOT started." >&2
     echo "   The box being clear is permission from the HOST, not from the ORDERING." >&2

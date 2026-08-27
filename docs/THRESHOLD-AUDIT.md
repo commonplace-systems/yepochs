@@ -63,6 +63,32 @@ ship; only the clock could have caught it.**
 Positional check beside the clock: `--dry-run` exits at `bin/mutate.sh:213`, the `mix test`
 invocation is at `:228`. **Both, because either alone can be satisfied by an accident.**
 
+## 🔎 Suite-starters — enumerated TWICE, because the first selector was blind
+
+⛔ My first enumeration grepped `mix (test|check|compile)` and reported **exactly one** starter. It
+was under-inclusive in two ways at once:
+
+1. **It omitted `mix run` and `mix deps.get`.**
+2. ⭐ **It was structurally blind to INDIRECTION.** `bin/box-sample.sh` runs `"$@"` — the command is
+   an *argument*, not text in the file — so no literal selector can see it. **An indirection is
+   invisible to a literal selector exactly as a habit is invisible to a repo grep.**
+
+⚠️ And the *second* selector failed too: my indirection pattern `(exec |^\s*)"\$@"` missed
+`with-slot.sh`, whose `"$@"` sits after a `--`. **Two selector failures inside one check whose whole
+purpose was to catch a selector failure.**
+
+| starter | how it starts things | gated? |
+|---|---|---|
+| `bin/mutate.sh:243` | literal `mix test` | ✅ marker + token |
+| `bin/with-slot.sh` | passes `"$@"` onward | ✅ it *is* the gate |
+| `bin/box-sample.sh:152` | runs `"$@"` | ⛔ **deliberately not** — see below |
+
+⭐ **`box-sample.sh` is an INSTRUMENT and stays ungated by decision:** a measuring tool that demands
+permission cannot measure the thing you needed permission to see. The interlock is `with-slot.sh`,
+which takes the token and *then* delegates here. Invoking the sampler directly with an expensive
+command is outside the interlock **on purpose**, and that is now written in the file rather than
+inferred from its absence.
+
 ## ⛔ Known non-guards
 
 - `bin/box-sample.sh` **reports, it does not gate.** Checked rather than assumed: the only exits are

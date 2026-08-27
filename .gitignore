@@ -13,3 +13,4 @@ yepochs-*.tar
 /cover/
 /conformance/node_modules/
 .slot-granted
+.slot-protocol
