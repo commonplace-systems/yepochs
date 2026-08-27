@@ -180,6 +180,14 @@ was under-inclusive in two ways at once:
 `with-slot.sh`, whose `"$@"` sits after a `--`. **Two selector failures inside one check whose whole
 purpose was to catch a selector failure.**
 
+⭐⭐ **AND THE TWO ARE NOT PEERS — naming that is the point.** Adding `run` and `deps.get` widened
+the selector's **VOCABULARY**; it could never have found `box-sample.sh`, because that blind spot is
+the selector's **SHAPE** — *a literal string present in the file*. **A FIX THAT EXTENDS A
+SELECTOR'S VOCABULARY WITHOUT CHANGING ITS SHAPE INHERITS THE SHAPE'S BLIND SPOT**, and it reads as
+a repair while returning the same clean zero. ⇒ **Only re-asking the question — *what runs a command
+it was handed?* — found the indirection.** I made both fixes and did not notice they were different
+kinds until another door named the class.
+
 | starter | how it starts things | gated? |
 |---|---|---|
 | `bin/mutate.sh:243` | literal `mix test` | ✅ marker + token |
