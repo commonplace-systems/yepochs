@@ -517,6 +517,38 @@ wrong, and the grep printed `4` on the same screen.**
 ARTIFACT ONLY FIRES ON THE PATH THAT INVOKES IT. A check wired into `mix check` does not protect a
 command typed at a prompt** — and every incident here, mine included, was typed.
 
+## 🌳 This repo is TWO worktrees, and every reading tonight was scoped to one
+
+```
+git worktree list → /home/jes/yepochs             [main]
+                    /home/jes/yepochs-pin-fdc808f (detached)   ← in none of my queries
+```
+⛔ **Every `find _build`, every marker read, every "count: 1" I published was scoped to the primary
+checkout.** ⭐ **Both published numbers survive re-enumeration — and neither was a measurement over
+the population I named:**
+
+| claim | survives? | why |
+|---|---|---|
+| markers: 1 | ✅ | the pin worktree has **no `_build` at all** — corpus control 0 files, genuinely empty rather than unsearched |
+| 0 yepochs BEAMs | ✅ | the glob `*yepochs*` happens to match **both** paths, so the scope was right **by luck of the pattern, not by design** |
+
+⇒ ⭐⭐ **A CORRECT NUMBER FROM AN UNENUMERATED POPULATION IS A LUCKY DRAW, NOT A MEASUREMENT — AND
+IT IS INDISTINGUISHABLE FROM A CAREFUL ONE IN THE MESSAGE.** Both of mine read as careful.
+
+## 🔤 And the selector recorded above over-matches, fired both ways
+
+⛔ **`\bmix (test|check|compile|run|deps\.get)` has no trailing boundary**, so it matches inside
+`mix testing` — part of why the raw count was 4 where 1 was real.
+```
+strict form  mix (test|check|compile|run|deps\.get)
+  probe with all five verbs, one per line → 5   ✅ every branch fires
+  prose "we should mix testing into…"     → 0   ✅ the over-match is gone
+```
+⚠️ **And the red arm found its own defect first: `mix check → 0 INERT` — because my probe contained
+four verbs and `check` was not one of them.** ⭐ **A branch reported inert by a fixture that never
+offered it the case. Sixth instance tonight of a plausible number from an incomplete instrument, and
+it self-corrected in one command only because the number was surprising.**
+
 ## ⛔ Known non-guards
 
 - `bin/box-sample.sh` **reports, it does not gate.** Checked rather than assumed: the only exits are
