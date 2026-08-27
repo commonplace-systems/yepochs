@@ -77,8 +77,27 @@ stops; a stub proves the pre-flight passed where it actually runs.**
 change to how the tool decides what to execute, and I am not making one while a slot is held
 elsewhere.**
 
-⚠️ **`exit 4` stays labelled UNEXERCISED.** I will not induce a compile error during a slot granted
-for something else, and manufacturing the condition to close a row is the cheap version.
+⚠️ **`exit 4` stays labelled UNEXERCISED — and the reason is sharper than "I need a slot."**
+
+⭐ **The discriminator is whether the arm's DEMONSTRATION is itself a box consumer:**
+
+| subject | firing the red arm costs |
+|---|---|
+| a shell guard (`exit 3`, `5`, `6`, `76`) | a process exit — **mutate a copy, run `bash`, no BEAM** |
+| `exit 4` (suite produced no test count) | **a `mix test` run** — the exact thing a slot rations |
+
+⇒ ⛔ **At this door every other arm is demonstrable slot-free, and this one is not, because the
+demonstration and the consumption are the same act.** ⭐ **"Needs a slot" was doing too much work as
+a reason; this is the actual line, and it is narrower.**
+⛔ **I could read the branch and see it is correct. That is a claim from READING — the class this
+whole file exists to convict. Reading would let me say the fix is right; it would not let me say the
+arm goes red, and those are the two claims that get confused.**
+
+⭐ **Relatedly, and checked rather than assumed: this repo does NOT have the self-test/copy defect
+found at four other doors.** `--self-test` re-invokes `"$0"` with real arguments, so every arm
+travels the shipped path — **demonstrated by mutating the SHIPPED code** (`is_num`'s regex → `.*`;
+and the face-1 *message* alone, leaving `exit 3` intact, which the rc-and-text arm caught). **There
+is nothing here to hoist.**
 
 ## ⚠️ Predicate demonstrated · WIRING NOT
 
