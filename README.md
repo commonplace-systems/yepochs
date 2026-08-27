@@ -24,6 +24,14 @@ git diff --name-only 00a1102..HEAD -- lib/ test/     # empty ⇒ the verdict sti
 ⚠️ **Everything committed since is `bin/` and `docs/`.** Those cannot change the suite's verdict —
 **which is a different claim from "they were gated", and this file says which one it means.**
 
+⭐ **Every gate in this repo, and how far it has actually been demonstrated, is in
+[`docs/THRESHOLD-AUDIT.md`](docs/THRESHOLD-AUDIT.md)** — including the rows that are **latent**,
+the ones whose **wiring** is unexercised, one arm that is **downstream of the action and cannot be
+stubbed**, and the two occasions the slot interlock was **disarmed by the teardown of the test that
+exercises it**.
+⛔ **It is linked from here because a filed artifact fires only if something reads it.** It had no
+inbound link for its first two hours: filed, and firing for nobody.
+
 ⚠️ **This line is rewritten at every landing and is never appended below.** A count without the sha
 it was measured at is a claim about a moment nobody can identify.
 
