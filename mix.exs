@@ -9,7 +9,20 @@ defmodule Yepochs.MixProject do
       start_permanent: Mix.env() == :prod,
       elixirc_paths: elixirc_paths(Mix.env()),
       aliases: [
-        check: ["format --check-formatted", "compile --warnings-as-errors", "test", "dialyzer"]
+        # ⛔ NO SINGLE ENV RUNS ALL FOUR. `test` refuses to start outside :test;
+        # `dialyzer` does not EXIST outside :dev, because dialyxir is
+        # `only: [:dev]`. Forcing the alias to either env silently drops a
+        # stage — measured: under :test the alias died with
+        # `The task "dialyzer" could not be found` AFTER the suite had passed,
+        # which reads like a flake rather than a missing stage.
+        # ⇒ Run the first three in :test (see `def cli`) and shell out for
+        # dialyzer with its own env.
+        check: [
+          "format --check-formatted",
+          "compile --warnings-as-errors",
+          "test",
+          "cmd MIX_ENV=dev mix dialyzer"
+        ]
       ],
       deps: deps(),
       description:
@@ -49,6 +62,14 @@ defmodule Yepochs.MixProject do
   # Pinned to the same ref `commonplace` uses, because §10.4 and §15.10
   # determinism are stated against a PINNED codec version -- an unpinned codec
   # would make "the same bytes" a claim about whatever was fetched that day.
+  # ⛔ WITHOUT THIS, `mix check` DIES BEFORE ITS FIRST STAGE. The alias runs
+  # `test`, which refuses to start in the :dev environment, so the whole alias
+  # exits 1 having run NOTHING — not formatting, not compile, not dialyzer.
+  # ⚠️ Measured 2026-08-27: the README had claimed for days that `mix check`
+  # "runs the lot", and the alias had never once been executed. A documented
+  # gate that has never been run is a remembered rule with a citation.
+  def cli, do: [preferred_envs: [check: :test]]
+
   defp deps do
     [
       {:yelixer, git: "https://github.com/commonplace-systems/yelixer.git", ref: "bc35a0e9"},

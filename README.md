@@ -34,9 +34,20 @@ The surface, against spec r3:
 **Measured at `9f5e5f2`: 12 properties, 628 tests, 0 failures** — including §28.4 conformance vectors authored by **upstream
 `yjs` 13.6.32**, not by this stack. Ten vectors: five text/delete, and five
 `Y.Map`/`Y.Array` generated for ruling 8.1. ⚠️ **No XML vectors and no XML claim** — element children
-cannot survive the snapshot replay, so such documents can hold no bridge. `mix check` runs the lot: formatting, `--warnings-as-errors`,
-the suite, and **Dialyzer under strict flags** (`error_handling`, `extra_return`, `missing_return`,
-`unmatched_returns`) — currently 0 errors. Every load-bearing check is
+cannot survive the snapshot replay, so such documents can hold no bridge. `mix check` runs formatting, `--warnings-as-errors`, the suite, and Dialyzer.
+
+⚠️ **Dialyzer's `flags:` REPLACES its default warning set — it does not extend it.** This project
+enables exactly **`error_handling`, `extra_return`, `missing_return`, `unmatched_returns`**, so
+`invalid_contract`, `no_return` and the rest of the default set are **NOT checked**. ⛔ Calling that
+"strict flags", as this README did until 2026-08-27, overstates it: the set is *narrower* than the
+default, chosen deliberately, not wider.
+
+⭐ **Measured, because a green stage proves nothing about what it can catch:** a public function
+declaring `{:error, _}` while returning `{:ok, binary()}` passes cleanly under those four flags, and
+the same defect under `:underspecs`/`:overspecs` gives **`Total errors: 35, rc 2`**. ⇒ The dialyzer
+stage **can** fail — it is not decoration — but it is blind to spec/contract mismatches by
+construction. Those two extra flags are not enabled because they report **34 findings on clean
+code**, which is a deliberate trade and now a recorded one. Every load-bearing check is
 **mutation-tested** — disabled one at a time to confirm the suite reddens. That practice found
 ornamental gates in *every* module it was applied to, and three genuine defects it would otherwise
 have missed. See [`docs/design/`](docs/design/).
