@@ -359,6 +359,28 @@ SELF-TEST FAILED: face (1) returned 3 but not from the expected arm
 ⭐ **The rc matched and the arm did not — which is the whole failure mode, and it is invisible to
 any rc-only check.** Restored → green, file byte-identical.
 
+## 🪞 One mechanism, four faces at this door
+
+Each of these is filed above as its own incident. **They are one mechanism, and a reader who meets
+them separately will not see it:** every one was a **true sentence about the wrong object**, and
+none of them presents as an error.
+
+| the sentence | true of | false of |
+|---|---|---|
+| "my own scripts refuse me" | the tree while the marker existed | **both moments it mattered** — 18:53Z and 19:02:54Z |
+| "not an adopter of the shared health tool" | my committed files | my **hand-typed** Sol dispatch, the same runtime read of another tree |
+| my ⑧ report's `git show main:…` | my local ref | the **deployed** artifact — it agreed only because `ahead = 0` |
+| "the number is filed" (`grep -c` = 4) | the string appearing 4 times | **the record** — 2 of 4 hits were the number used in an argument |
+
+⇒ ⭐ **The countermeasure was identical every time and it is never "be careful": NAME THE OBJECT —
+the ref, the path, the arm, the file the claim lives in — and check the answer is about that.**
+⛔ **A wrong-referent answer is not caught by re-asking more carefully; it is caught by asking about
+something specific enough to be wrong.**
+
+⚠️ **And the reason this section exists rather than a note in each incident: the fourth instance
+looked like diligence while I was producing it.** Counting hits, publishing a number, reporting a
+verified state — **all four felt like the careful version of what I was doing.**
+
 ## ⛔ Known non-guards
 
 - `bin/box-sample.sh` **reports, it does not gate.** Checked rather than assumed: the only exits are
