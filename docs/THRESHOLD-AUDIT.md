@@ -61,6 +61,15 @@ Anchored here so the claim and its evidence live together.
 ⇒ **~978 MB invisible to the endpoints.** This is the whole argument for `bin/box-sample.sh`: the
 ends of a window cannot show you the window.
 
+⚠️ **THE FINDING IS THE GAP; THE ABSOLUTE NUMBERS ARE THE CONDITIONS OF ONE RUN.** Measured
+2026-08-27 on a shared host carrying other repos' suites, one `mix check` (629 tests + 12
+properties, ~100 s) with a process elsewhere on the box oscillating ~2.4 GB on a ~60–90 s cadence.
+⛔ **Do not read 3843/2865 as characteristic of this tool or this suite.** A number whose meaning is
+*"the conditions of that run"* decays into a general claim the moment it sits in a general document
+— which is exactly how an unfiled table elsewhere got quoted at four doors as though it described
+gates rather than one evening. **Kept here because the DELTA is the evidence and it belongs beside
+the claim; the readings are dated and qualified so they cannot be lifted out of it.**
+
 ⚠️ Also commit-message-only: `VmHWM 2854` (the reserve term, measured above the 2768 that had been
 published as a peak — a sampled maximum is a reading, not a bound).
 
