@@ -22,6 +22,14 @@
 #   is ornamental. Mutate by INVERTING or by breaking the mechanism, not by
 #   loosening. (Demonstrated: DEMO 4 in the commit that added this file.)
 #
+# ⭐ WHICH OF THIS SCRIPT'S ARMS ARE ACTUALLY PROVEN — and which are latent, which have
+#   unexercised wiring, and which is DOWNSTREAM OF THE GUARDED ACTION and cannot be
+#   stubbed at all — is recorded in docs/THRESHOLD-AUDIT.md. Read it before trusting a
+#   green from here.
+# ⛔ The pointer is HERE, in the script you are running, because a filed artifact fires
+#   only if something reads it: that audit had one referrer (README) and none from the
+#   scripts it documents.
+#
 # Usage: bin/mutate.sh [--dry-run] <file> <old> <new> [test target]
 #   --dry-run applies the mutation, runs the expectation guard, restores, and
 #   exits WITHOUT running the suite — so both arms of the guard are
