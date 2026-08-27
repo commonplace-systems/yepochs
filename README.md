@@ -5,11 +5,19 @@ extracted into its own package.
 
 ## Status
 
-**Measured at `9f5e5f2`: spec r3 §6–§24 implemented, epoch-token minting shipped, 12 properties, 628 tests, 0 failures; consumed by
-`commonplace-merkle-crdt` for compaction openers.**
+**Measured at `9f5e5f2`: spec r3 §6–§24 implemented, epoch-token minting shipped, **628 runner
+tests** + 12 properties, 0 failures; consumed by `commonplace-merkle-crdt` for compaction openers.**
 
 ⚠️ **This line is rewritten at every landing and is never appended below.** A count without the sha
 it was measured at is a claim about a moment nobody can identify.
+
+⛔ **"628 RUNNER tests" names its POPULATION, and that is not decoration.** The same tree has **367
+source-visible `test "` lines** — both true at the same sha. A `for` comprehension in
+`test/totality_test.exs` generates **260 runner tests from one source line**, so the two counts
+diverge by +261 with no defect anywhere. ⚠️ A count with a sha but no population is still ambiguous,
+and I read a survey's correct source-line figure as a stale runner figure for exactly that reason.
+⇒ ⭐ **A genuinely stale count is a number this tree once produced. 367 never was — that is the
+discriminator, and "it disagrees with mine" is not one.**
 
 ⛔ **It names the sha the measurement was TAKEN at, not this commit's own.** A commit cannot name
 itself — writing the name changes the hash, and amending to fix it changes it again. ⇒ *"the sha it
