@@ -20,12 +20,17 @@ merge them.
 | `mix check` `test` stage catches a timeout | ✅ rc=2 `ExUnit.TimeoutError` | and `--trace` rc=0, proving the mode matters |
 | `test/fixture_coverage_test.exs` corpus check | ✅ | see LATENT below — required inducing a nested file |
 | `box-sample.sh` cleanup cannot fail the measured run | ✅ | run under a forced `set -e`: wrapped command's rc 9 survives, not the cleanup's |
+| `with-slot.sh` refuses without a token | ✅ rc 76, nothing run | the wrapped command was written to print if reached; it did not |
+| `with-slot.sh` consumes the token | ✅ | second invocation refuses — a token that survives its run is a standing permission, not a slot |
+| `box-sample.sh` UNVERIFIABLE branch, **in a live run** | ✅ | fired unplanned in a 1-sample window: serve pid found, no rss sample landed, no number printed |
+| `box-sample.sh` `< 2 samples` warning | ✅ | same run |
 
 ## ⚠️ Predicate demonstrated · WIRING NOT
 
 | guard | what is proven | what is NOT |
 |---|---|---|
-| `serve_hwm_mb` on an unreadable `/proc` | passing a bogus pid returns EMPTY and is refused downstream | a `/proc` read **failing on a pid that WAS found**. Those are different absences on different code paths, and I cannot make the second happen on demand. |
+| `serve_hwm_mb` on an unreadable `/proc` | passing a bogus pid returns EMPTY and is refused downstream | a `/proc` read **failing on a pid that WAS found**. Those are different absences on different code paths, and I cannot make the second happen on demand. ⚠️ A live run has now hit the UNVERIFIABLE *branch* (no rss sample landed in a 1-sample window) — that is a DIFFERENT CAUSE reaching the same branch, and it does **not** close this row. |
+| `with-slot.sh` green path into `mix check` | the wrapper, the token consume, and the sampler hand-off are exercised with a cheap command | ⛔ never run with `mix check` as the command — that is the queued slot run |
 | `mix check` self-test stages | both commands verified standalone, exactly as the alias invokes them | ⛔ **never run THROUGH the alias.** Added 2026-08-27; the box was queued, so no `mix check` has executed since. This is a path a healthy day does not exercise until someone runs the gate. |
 
 ## ⚠️ LATENT — cannot fire on today's tree, demonstrated by INDUCING the condition
