@@ -200,6 +200,14 @@ was absent (removed in an earlier test teardown), and the "check" was
 `bin/mutate.sh <file> <old> <new> | head -1` — **which without `--dry-run` applies the mutation and
 runs `mix test`.**
 
+**Cost, measured by the holder from inside its own window (I could not supply this):** 34 samples
+across its batch, **minimum available 3765 MB**, pre-flight 4195 MB, **no excursion below any line**;
+its jitter re-read at ~19:02:5x saw `suites=0, beams=2` baseline. ⇒ **The compile start cost it
+nothing measurable.** ⚠️ **Its stated limit, kept: that sampler reads `available`, not
+neighbours-per-sample — it establishes THE BOX WAS FINE, not that nothing overlapped.**
+⛔ **Priced, not excused: the box was safe because it happened to be quiet, not because a guard
+held.**
+
 **Measured, not inferred:**
 ```
 19:02:54.313  _build/test/lib/yepochs/.mix/compile.elixir.checkpoint   written
@@ -219,7 +227,11 @@ LIKELY THING TO DISARM IT.** The demo is the one path that deliberately manipula
 *and* the only one that cleans up after itself. **Both disarmings here were the teardown of the test
 that exercises the gate.**
 ⇒ ⭐ **Treat "the gate was exercised" and "the gate is still armed" as SEPARATE OBSERVATIONS, and
-treat the teardown as the prime suspect.** ⛔ Not fixed tonight — an arming check is a new
+treat the teardown as the prime suspect.**
+⭐⭐ **And the framing that makes it act on you, from the door whose slot I took: A CLEANUP THAT
+TOUCHES SHARED STATE IS PART OF THE MECHANISM, NOT HOUSEKEEPING AROUND IT.** "Teardown" sounds like
+tidying and is not. Same family as a cleanup that rewrites a run's exit code — there it changed a
+verdict, here it disarmed a guard. ⛔ Not fixed tonight — an arming check is a new
 coordination mechanism, and that is ruled out. **Recorded so whoever builds it starts from the
 mechanism rather than rediscovering it.**
 
