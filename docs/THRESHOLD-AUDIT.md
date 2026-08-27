@@ -118,6 +118,32 @@ detects one, so these are absences rather than silence.
 ⇒ **When a selector and a behavioural measurement disagree, the measurement wins on the invocation
 it covers — and the disagreement bounds the claim rather than licensing another pattern edit.**
 
+## 🔗 Composition — each arm alone is silent about their order
+
+⛔ **Every guard here had been demonstrated ALONE. Seeing each arm fire alone is not seeing them
+ordered correctly**, and the composition test found a real defect immediately.
+
+| case | expected | got |
+|---|---|---|
+| no token **and** a doctest, real path | slot refuses first | ✅ rc 76 |
+| `--dry-run` (slot skipped) **and** a doctest | doctest guard | ✅ rc 5 |
+| token granted **and** a doctest | doctest guard | ✅ rc 5 — ⛔ **but the token was BURNED** |
+
+⛔⛔ **The slot was spent by a run that never started a suite.** Checking and consuming had been
+collapsed into one call placed early, so a precondition failure downstream cost a scarce permission.
+✅ **Split: `slot_check` early (refuse before doing work) · `slot_consume` late (at the point the
+expensive thing actually starts).** Re-tested: the doctest arm now refuses **and the token survives**.
+
+⚠️ **And my own third arm was a false red.** I predicted 76 and got 3, then found the *code* was
+right and my *fixture* was wrong — I had assumed a previous arm consumed the token when it had
+correctly exited earlier. **A precondition assumed rather than established.** Re-run with the token
+explicitly removed: rc 76. ⭐ Same class as reading three `rc=128`s as arms firing.
+
+| arm | status |
+|---|---|
+| `slot_check` refuses / passes / no-marker | ✅ all three seen |
+| `slot_consume` on a run that reaches the suite | ⛔ **UNEXERCISED** — that *is* a suite, and I hold no slot. Labelled, not manufactured. |
+
 ## ⛔ Known non-guards
 
 - `bin/box-sample.sh` **reports, it does not gate.** Checked rather than assumed: the only exits are

@@ -37,9 +37,19 @@
 # invocations, so "am I in a queue" is answered by the filesystem rather than
 # by whether I remembered when I typed the command.
 
-# require_slot <what>  -- refuses at 76 unless a token exists; CONSUMES it.
-# No-ops entirely unless the operator marker is present.
-require_slot() {
+# ⛔⛔ CHECKING AND CONSUMING ARE SEPARATE OPERATIONS, and collapsing them cost
+# a token. Measured 2026-08-27: `mutate.sh` checked-and-consumed early (so the
+# refusal would precede any work), then hit its doctest guard and exited 5 --
+# THE SLOT WAS BURNED BY A RUN THAT NEVER STARTED A SUITE. A scarce permission
+# must not be spent by a precondition failure.
+# ⭐ Found ONLY by exercising the guards TOGETHER. Each had been demonstrated
+# alone, and seeing every arm fire alone is not seeing them ordered correctly:
+# AN ISOLATED ARM IS A CLAIM ABOUT ONE BRANCH AND SILENT ABOUT THEIR COMPOSITION.
+# ⇒ CHECK early (refuse before doing work) · CONSUME late (at the point the
+#   expensive thing actually starts).
+
+# slot_check <what>  -- refuses at 76 if gated and no token. Does NOT consume.
+slot_check() {
   local what="${1:-this run}" token="${SLOT_TOKEN:-.slot-granted}"
   local marker="${SLOT_PROTOCOL:-.slot-protocol}"
 
@@ -53,9 +63,20 @@ require_slot() {
     echo "   When the queue names you:  touch $token" >&2
     return 76
   fi
-  # ⭐ CONSUMED, not read. A token that survives its run is a standing
-  # permission, and a standing permission is not a slot.
-  rm -f "$token"
-  echo "✅ slot token consumed for $what."
   return 0
 }
+
+# slot_consume <what>  -- spend the token, immediately before the expensive
+# thing. ⭐ CONSUMED, not read: a token that survives its run is a standing
+# permission, and a standing permission is not a slot.
+slot_consume() {
+  local what="${1:-this run}" token="${SLOT_TOKEN:-.slot-granted}"
+  local marker="${SLOT_PROTOCOL:-.slot-protocol}"
+  [[ -f "$marker" ]] || return 0
+  rm -f "$token"
+  echo "✅ slot token consumed for $what."
+}
+
+# Back-compat for callers that legitimately do both at once (a wrapper whose
+# very next act is the expensive command).
+require_slot() { slot_check "$@" && slot_consume "$@"; }

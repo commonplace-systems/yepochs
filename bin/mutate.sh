@@ -112,7 +112,7 @@ fi
 # must not reach this check.
 if [[ "$DRY_RUN" == "0" ]]; then
   . "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/require-slot.sh"
-  require_slot "a mutation run of the suite" || exit 76
+  slot_check "a mutation run of the suite" || exit 76
 fi
 
 # ⛔ THIS SCRIPT USED TO REFUSE A FILE WITH UNCOMMITTED CHANGES, AND THE REASON
@@ -240,6 +240,11 @@ LOG="$(mktemp)"
 # same afternoon, one of them to `tail -1`.
 # ⇒ The log is KEPT and its path printed. The re-run is what destroys the
 # evidence, so the evidence has to outlive the first run.
+# ⭐ CONSUMED HERE, not at the check: every precondition has now passed and the
+# suite is the next thing to happen. An earlier cut spent the token and then
+# exited 5 on the doctest guard.
+if [[ "$DRY_RUN" == "0" ]]; then slot_consume "a mutation run of the suite"; fi
+
 if mix test ${TARGET:+"$TARGET"} > "$LOG" 2>&1; then
   echo "⚠️  SURVIVED — the suite stayed green under this mutation."
   echo "   $(grep -oE '[0-9]+ tests?, [0-9]+ failures?' "$LOG" | tail -1)"
