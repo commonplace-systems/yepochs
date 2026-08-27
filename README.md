@@ -5,11 +5,18 @@ extracted into its own package.
 
 ## Status
 
-**Measured at `9f5e5f2`: spec r3 §6–§24 implemented, epoch-token minting shipped, **628 runner
-tests** + 12 properties, 0 failures; consumed by `commonplace-merkle-crdt` for compaction openers.**
+**Measured at `1978436` (2026-08-27 17:52Z, `mix check`): spec r3 §6–§24 implemented, epoch-token
+minting shipped, 628 runner tests + 12 properties, 0 failures, Dialyzer 0 errors; consumed by
+`commonplace-merkle-crdt` for compaction openers.**
 
 ⚠️ **This line is rewritten at every landing and is never appended below.** A count without the sha
 it was measured at is a claim about a moment nobody can identify.
+
+■ **Host state is deliberately NOT recorded here**, and the reason is the rule rather than an
+omission: this line reports **counts and exit codes**, which are not timing-sensitive — a failing
+test fails at load 1 or load 44. ⇒ Record the box state beside a **duration** or a **flaky red**,
+where it is unrecoverable afterwards and load is a candidate cause. *(`commonplace-plan`'s addition:
+a count without its host state is a number without its population, in a new dimension.)*
 
 ⛔ **"628 RUNNER tests" names its POPULATION, and that is not decoration.** The same tree has **367
 source-visible `test "` lines** — both true at the same sha. A `for` comprehension in
