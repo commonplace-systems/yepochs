@@ -45,13 +45,17 @@ max_of() {
 # moves up, and it is immune to the sampling luck that produced the reading.
 # Measured on the same pid the same evening: VmHWM 2854 > 2768 — the sampled
 # peak was already stale when it was published.
-# ⚠️ The constant survives ONLY as a floor for when /proc is unreadable.
-SERVE_PEAK_FALLBACK_MB=2768
-
+# ⛔⛔ NO FALLBACK CONSTANT. An earlier cut of this file returned 2768 when the
+# /proc read failed, so a BOGUS PID PRODUCED A CONFIDENT-LOOKING 2768 and that
+# fabricated term entered the arithmetic indistinguishably from a measurement.
+# ⚠️ It erred in the CONSERVATIVE direction, which is luck, not design — the
+# defect is that a number nobody measured was printed as one that somebody did.
+# ⭐ AND THE TWO ABSENCES DO NOT SHARE A CODE PATH: "the serve was not found"
+# and "the serve was found and its /proc read failed" are different failures,
+# and guarding only the first leaves the second computing on a sentinel.
+# ⇒ Return NOTHING and let `is_num` refuse downstream. UNVERIFIABLE, not a value.
 serve_hwm_mb() {
-  local hwm
-  hwm="$(awk '/^VmHWM:/{print int($2/1024)}' "/proc/$1/status" 2>/dev/null)"
-  if [[ -z "$hwm" ]]; then echo "$SERVE_PEAK_FALLBACK_MB"; else echo "$hwm"; fi
+  awk '/^VmHWM:/{print int($2/1024)}' "/proc/$1/status" 2>/dev/null
 }
 
 # ⭐ SELECTOR, STATED: among `beam.smp` processes ONLY, the one whose
@@ -161,8 +165,8 @@ else
     echo "     serve: pid ${SERVE_PID} · rss now ${SERVE_MAX} MB · VmHWM ${HWM} MB (peak since start, monotonic)"
     echo "     ⇒ reserve ${RESERVE} MB · PESSIMISTIC headroom ${HEADROOM} MB"
   else
-    echo "     serve: pid ${SERVE_PID}, a reading was missing (min=${MIN} rss=${SERVE_MAX} hwm=${HWM})"
-    echo "     ⇒ headroom UNKNOWN — no number printed from a missing measurement."
+    echo "     serve: pid ${SERVE_PID}, a reading was missing (min=${MIN:-<empty>} rss=${SERVE_MAX:-<empty>} hwm=${HWM:-<empty>})"
+    echo "     ⇒ headroom UNVERIFIABLE — no number printed from a missing measurement."
   fi
 fi
 # ⚠️ A sample count of 0 or 1 means the run was shorter than the interval: the
