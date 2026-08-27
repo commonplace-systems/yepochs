@@ -107,3 +107,86 @@ a round with a slot than as a loose bump.
 
 Not perishable — `plan` said so, `merkle` attached no ask, and `doc-sync` holds the box. This
 document is the whole of what could be done without the box, and it is done.
+
+---
+
+# RESULT — run 2026-08-27 22:56Z–23:07Z, read against the pre-registration above
+
+**Outcome: the pre-registered "Step 1 RED in the new fixture only" branch, and it found a real
+defect in a derivation — not in the library.**
+
+## What happened, in the order the pre-registration required
+
+| step | result |
+|---|---|
+| ⑧ gate RED produced | `slot_check` with no token → **rc 76** ✅, then rc 0 with it. Both arms. |
+| sha re-taken at write time | `b688b6b1…` at 23:01:01Z from `ls-remote` against the github URL. Not from this doc. |
+| Step 0 on the OLD pin | 4 new tests green · full suite **633** / 12 props / **0 failures** · 97 samples, MIN available 6513 MB |
+| Step 1 after the bump | armed corpus **3 red**, full suite 633 / **3 failures — all three in the new file**. The 629 pre-existing tests stayed GREEN. |
+| Step 1b unmasking | 12 tests (was 4) · **1 red** · then 641 / 12 props / **0 failures**, format rc 0, Dialyzer **0 errors** |
+
+Measured moves, against the pre-registration's predictions:
+
+```
+astral span length   1 → 2    predicted 2   ✅
+Text.length 😀😀      2 → 4    predicted 4   ✅
+Text.length 😀A       2 → 3    predicted 3   ✅
+BMP control あ        1 → 1    MUST NOT MOVE ✅ (it did not)
+```
+
+## ⛔ THE DEFECT WAS IN STEP 1's INSTRUMENT, NOT IN ITS NUMBERS
+
+Step 1 reported "3 red, all as predicted" and that reading was **wrong**. `assert %Span{...}` on
+line 45 short-circuited its test, so the **combining (→2) and ZWJ (→5)** assertions below it never
+executed. Tests 2 and 3 died on an earlier `Text.length` line, so the **delete-set interval** and
+the **translate anchor** assertions never ran either.
+
+⭐ Three assertions that had never executed were indistinguishable, from the summary line, from
+three that passed. Splitting the file into 12 single-claim tests is what made them reachable —
+and one of them was red.
+
+## ⭐ THE FINDING: `origin` IS THE LEFT NEIGHBOUR'S LAST UNIT, NOT ITS FIRST
+
+The only genuine disagreement, and it was invisible before tonight:
+
+```
+expected origin clock 0, observed 1   (right_origin 2 passed)
+```
+
+The pre-registration required that a derived/observed disagreement be reported rather than
+adjusted away. Resolved in the CODE's favour: `origin` is the ID of the character immediately to
+the left — the left neighbour's LAST unit. One rule, no free parameters, explains both pins:
+
+```
+origin = start + length - 1
+  graphemes (bc35a0e9): 😀 = 1 unit  [0,1) → 0   observed 0  ✅
+  UTF-16    (b688b6b1): 😀 = 2 units [0,2) → 1   observed 1  ✅
+```
+
+⛔ **Under graphemes the bug was unreachable in principle.** For any one-unit character "the left
+neighbour's start" and "its last unit" are the same integer, so a wrong model produced right
+answers for every input the old corpus could express. UTF-16 separates them and the mistake
+becomes visible. ⇒ The old expectation of `0` was right for the wrong reason.
+
+## What the round did NOT establish
+
+⚠️ The 629 pre-existing tests are green under the new pin, but they are **unit-blind by
+construction** — that was this document's founding measurement. Their green is evidence that the
+bump breaks nothing they can see, which is not the same as evidence that it breaks nothing.
+The 12 new tests are the only ones whose result depends on the unit at all.
+
+⚠️ Sampling was thin on two of four windows: Step 1 bought **9 samples**, the 1b verify **6**, the
+final **18**; only the Sol dispatch bought **97**. A 6-sample minimum is close to an endpoint
+reading and is reported as such rather than as whole-window coverage.
+
+⚠️ The Step 1b Sol round was **killed mid-write** (`Terminated`, no rc line). It had finished
+writing the file, which audits clean and parses, so nothing was lost — but `dmesg` and `syslog`
+are unreadable at this door, so **the kill is UNATTRIBUTED**. "No OOM lines" here is an instrument
+limit, not evidence of no OOM. ⚠️ `SwapFree` fell 133 MB → 66 MB across the round while
+`available` stayed above 6 GB.
+
+## Still open, and NOT decided by this round
+
+The fix taken was ① re-pin. ⛔ Whether `merkle`'s guard asserting sha EQUALITY is the right shape
+where COMPATIBILITY is meant remains open, and is **not mine to change** — `merkle` has had no
+door since 22:13Z. Recorded as a ranked row, not an edit to someone else's file.
