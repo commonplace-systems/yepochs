@@ -46,6 +46,28 @@ merge them.
 ⭐ Both fire the moment the tree grows the shape they guard — which is exactly when they would
 otherwise start lying.
 
+## 📌 The evidence behind this repo's strongest claim, anchored where it can be found
+
+⚠️ Audited 2026-08-27: the pair below existed **only in a commit message** (`483c42c`) — durable and
+`git log --grep`-able, but invisible to anyone reading `docs/`. Not lost, and not filed either.
+Anchored here so the claim and its evidence live together.
+
+| reading | value |
+|---|---|
+| pre-flight minimum, 5 samples spread over 24 s | 3843 MB |
+| **during-run minimum, 67 samples wrapping `mix check`** | **2865 MB** |
+| post-run | comfortable again |
+
+⇒ **~978 MB invisible to the endpoints.** This is the whole argument for `bin/box-sample.sh`: the
+ends of a window cannot show you the window.
+
+⚠️ Also commit-message-only: `VmHWM 2854` (the reserve term, measured above the 2768 that had been
+published as a peak — a sampled maximum is a reading, not a bound).
+
+⛔ **Deliberately unfiled:** tonight's individual box readings (944 / 4196 / 1645 MB). Those are
+transient observations of a shared host, not findings about this repo, and filing them would dress
+a timestamped reading as a property.
+
 ## ⏱ Cheap flags — TIMED, not read
 
 ⛔ **A flag that claims to be cheap must be cheap BY POSITION, NOT BY INTENTION.** Measured
