@@ -237,7 +237,13 @@ its README for the same reason; this is the counterpart.
    (`~/yelixer-pin-bc35a0e9-merkle`) and its drift test checks that clone
    **against this repo's lock**. ⇒ Moving the pin breaks their test by design —
    which is the point — but they should hear it from here first rather than
-   from a red suite. **They pin this repo by ORIGIN SHA** (`git:` + `ref:`, no longer a path
+   from a red suite. ⭐ **This condition is now LIVE and pre-registered, not run:**
+   `plan` ordered `yelixer → yepochs re-pin → merkle Round 2` on 2026-08-27, and
+   `docs/design/0012` records what will be run, what each outcome means, and the
+   measured reason a green suite would prove nothing (⛔ zero astral / combining
+   content in this corpus, so the UTF-16 clock-unit change at yelixer `eacd874`
+   is invisible to every test here). **Arm the corpus before bumping.**
+   **They pin this repo by ORIGIN SHA** (`git:` + `ref:`, no longer a path
    worktree, as of 2026-08-25) **— so tell them before any behavioural change,
    and note a moved pin now requires a push, not just a local commit.**
 
