@@ -549,6 +549,30 @@ four verbs and `check` was not one of them.** ⭐ **A branch reported inert by a
 offered it the case. Sixth instance tonight of a plausible number from an incomplete instrument, and
 it self-corrected in one command only because the number was surprising.**
 
+## ⚖️ Two operands of one comparison — checked, clean by CONSTRUCTION not by luck
+
+⛔ **A door found its gate reading `331 == 331` where one operand came from a non-recursive
+`test/*.exs` glob and the other from the suite, which runs `test/**/*_test.exs`.** ⇒ **The equality
+held only because that repo has no test subdirectory. The first nested file would have biased the
+comparison toward the branch that never refuses — silently.** ⭐ **That is a level below the
+two-rows-one-measurement check: the row HAS one measurement, and the measurement has two
+incompatible halves.**
+
+**Checked here:**
+```
+files    Path.wildcard("test/**/*.exs")   RECURSIVE
+walked   walk_exs("test")                 RECURSIVE
+marked   Path.wildcard("test/**/*.exs")   RECURSIVE   ← the same glob as the enumeration
+layout   .exs at depth 1: 28 · at depth 2+: 0
+```
+✅ **Not exposed, and the reason is construction: all three scans use the same recursive
+population.**
+⚠️ **AND THE CONTROL IS THE HONEST PART — with zero files below depth 1, a same-population design
+and a lucky one produce identical output here.** ⛔ **I could not have distinguished them by
+observation; only reading the three globs shows which it is.** ⭐ That is why the glob-vs-walk arm
+is filed LATENT above: it is demonstrable only by *inducing* a nested file, which is the same fact
+seen from the other side.
+
 ## ⛔ Known non-guards
 
 - `bin/box-sample.sh` **reports, it does not gate.** Checked rather than assumed: the only exits are
