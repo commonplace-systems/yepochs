@@ -254,11 +254,22 @@ out to be untestable on that OTP version, which is a **finding**, not a failure.
 pgrep -u "$USER" -x codex | xargs -r ps -o pgid= -p | tr -d ' ' | sort -u | grep -c '[0-9]'
 ```
 
-⚠️ **Not `pgrep -f 'codex exec'` or `ps -eo args | grep -c codex`.** A command-line match counts
-**four processes per round** (bwrap parents and node wrappers), so two rounds read as eight — and any
-concurrency figure recorded beside a test failure is then on an axis 4× too large, putting every
-later correlation on wrong ground. ⛔ `-f` also matches **your own command line**, which is its own
-trap. ⚠️ I used the `-f` form once this session and it returned the right answer only because the
+⛔⛔ **THE HAZARD IS NOT THE `-f` FLAG. IT IS MATCHING ON ANY STRING YOU ALSO TYPED.** Naming `-f`
+was too narrow, and the bracket idiom `grep '[c]odex'` is **a partial mitigation that reads like a
+complete one**: it stops the grep matching itself, and stops nothing else. Measured across the fleet
+2026-08-27 — a bracketed args match reported **6 running suites where 2 were real**, and one of the
+six was *the pre-flight command running the count*. A second door bracketed one token and still got
+three self-hits, because the same string appeared elsewhere on its own command line.
+
+⭐ **Enumerate by executable NAME, then read a kernel fact — do not filter a text match.** `pgrep -x`
+matches `comm`, and prose cannot be an executable; `/proc/PID/cmdline` is then read only for
+processes already known to be the right kind. A shell discussing the pattern, an editor with the file
+open, and the measuring command itself are **structurally excluded rather than filtered out**. Always
+report the unfiltered `pgrep -x` count beside it as the control.
+
+⚠️ Args-matching also inflates by **~4 processes per round** (bwrap parents, wrappers), so a
+concurrency figure recorded beside a failure lands on an axis several times too large — and the
+multiplier is **not constant**, so it cannot be divided out afterwards. ⚠️ I used the `-f` form once this session and it returned the right answer only because the
 true count was **zero**, which is robust to over-counting. A nonzero would have been wrong.
 
 ## Standing cautions for whoever reads this next
