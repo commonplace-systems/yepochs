@@ -87,7 +87,7 @@ for something else, and manufacturing the condition to close a row is the cheap 
 | `serve_hwm_mb` on an unreadable `/proc` | passing a bogus pid returns EMPTY and is refused downstream | a `/proc` read **failing on a pid that WAS found**. Those are different absences on different code paths, and I cannot make the second happen on demand. ⚠️ A live run has now hit the UNVERIFIABLE *branch* (no rss sample landed in a 1-sample window) — that is a DIFFERENT CAUSE reaching the same branch, and it does **not** close this row. |
 | `with-slot.sh` green path into `mix check` | the wrapper, the token consume, and the sampler hand-off are exercised with a cheap command | ⛔ never run with `mix check` as the command — that is the queued slot run |
 | `mutate.sh` suite path GREEN (token present) | the refusal arm is proven | ⛔ the green arm runs a real suite, so it needs a slot. Not closed by argument. |
-| `mix check` self-test stages | both commands verified standalone, exactly as the alias invokes them | ⛔ **never run THROUGH the alias.** Added 2026-08-27; the box was queued, so no `mix check` has executed since. This is a path a healthy day does not exercise until someone runs the gate. |
+| ~~`mix check` self-test stages~~ | ✅ **CLOSED 19:22Z — both stages EXECUTED inside the alias** | see below |
 
 ## ⚠️ LATENT — cannot fire on today's tree, demonstrated by INDUCING the condition
 
@@ -473,7 +473,32 @@ silently succeeds against whatever is there.
   is **absence, not design** — if a host-dependent gate is ever added, it needs one, kept in the
   same edit as the gate it guards.
 
-## Next action
+## ✅ The wiring row, CLOSED — run under a granted slot, 2026-08-27 19:21–19:22Z
 
-Run `mix check` at the next free slot and record whether the two new stages executed. Until that
-line exists, the wiring row above stays ⚠️.
+```
+⑩ gate BEFORE   no token  → rc 76 "was NOT started"
+   stage 1      self-test ok: green=0 face1=3 face3=5 doctest=6, tree restored
+   stage 2      self-test ok: min(dip/…) max(…) is_num(3 accept,5 reject) hwm(unreadable=empty)
+   suite        12 properties, 629 tests, 0 failures
+   dialyzer     Total errors: 0
+   mix check    rc 0
+⑩ gate AFTER    token consumed by the run → rc 76 again · marker STILL ARMED
+box             20 samples, WHOLE-RUN window, MINIMUM available 3265 MB
+                serve rss 312 · VmHWM 2854 · reserve 2542 · PESSIMISTIC 723 MB
+```
+
+⭐ **The stages were confirmed by their OWN output appearing in the alias's log, not by `rc 0`** — a
+green alias would print the same rc whether or not they ran. **Control: a string known to be in the
+log (`Total errors: 0`) returns 1, so a zero on the stage lines would have been readable.**
+
+⛔ **AND THE HONEST COST: my run drove the pessimistic figure to 723 MB, less than half the 1500
+line.** Pre-flight said 1407 — already below it — and I started anyway because the gate boss ruled
+on (`available − 500 > 1500`) passed by 1949 MB. **Reported, not excused: the reserve is the number
+that got worse, and `available` never dropped below 3265.**
+
+⚠️ **Two ⑩ readings, published as separate observations** because "exercised" and "still armed" are
+different claims and I failed the second twice tonight. The marker survived this run; the two
+earlier failures were both a test's teardown, not a run.
+
+⚠️ **The suite took 14.8 s here against 74.0 s at the last measured run — same tree, warm `_build`,
+quieter box.** A wall-clock figure is a fact about its afternoon; only the counts travel.
