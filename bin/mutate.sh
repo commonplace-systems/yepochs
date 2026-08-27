@@ -100,6 +100,21 @@ if [[ -z "$FILE" || -z "$OLD" || -z "$NEW" ]]; then
 fi
 [[ -f "$FILE" ]] || { echo "no such file: $FILE (nothing was changed)" >&2; exit 2; }
 
+# ⛔ THE ONLY REAL SUITE INVOCATION IN THIS REPO IS BELOW (`mix test`). It was
+# UNGATED while the wrapper nobody must call was gated -- the token protected
+# the path of LEAST consequence.
+# ⭐ CHECKED HERE, BEFORE THE FILE IS TOUCHED. An earlier cut applied the
+# mutation and THEN refused: the EXIT trap restored it, so nothing was lost,
+# but a refusal that happens after the work is a refusal that has already paid
+# for it -- and between the two lines the tree is mutated, which a SIGKILL
+# would make permanent.
+# ⚠️ --dry-run and --self-test start nothing, so they are deliberately FREE and
+# must not reach this check.
+if [[ "$DRY_RUN" == "0" ]]; then
+  . "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/require-slot.sh"
+  require_slot "a mutation run of the suite" || exit 76
+fi
+
 # ⛔ THIS SCRIPT USED TO REFUSE A FILE WITH UNCOMMITTED CHANGES, AND THE REASON
 # WAS FALSE. The stated reason was "the restore would silently discard them".
 # It would not: the backup is `cp "$FILE" "$BACKUP"` — the file AS IT IS,

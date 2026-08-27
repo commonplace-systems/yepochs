@@ -22,6 +22,8 @@ merge them.
 | `box-sample.sh` cleanup cannot fail the measured run | ✅ | run under a forced `set -e`: wrapped command's rc 9 survives, not the cleanup's |
 | `with-slot.sh` refuses without a token | ✅ rc 76, nothing run | the wrapped command was written to print if reached; it did not |
 | `with-slot.sh` consumes the token | ✅ | second invocation refuses — a token that survives its run is a standing permission, not a slot |
+| `mutate.sh` suite path refuses without a token | ✅ rc 76 in 18 ms | and the file is **never touched**: `git diff` empty |
+| `mutate.sh --self-test` / `--dry-run` stay ungated | ✅ | they start nothing, so requiring a token would make the cheap path lie |
 | `box-sample.sh` UNVERIFIABLE branch, **in a live run** | ✅ | fired unplanned in a 1-sample window: serve pid found, no rss sample landed, no number printed |
 | `box-sample.sh` `< 2 samples` warning | ✅ | same run |
 
@@ -31,6 +33,7 @@ merge them.
 |---|---|---|
 | `serve_hwm_mb` on an unreadable `/proc` | passing a bogus pid returns EMPTY and is refused downstream | a `/proc` read **failing on a pid that WAS found**. Those are different absences on different code paths, and I cannot make the second happen on demand. ⚠️ A live run has now hit the UNVERIFIABLE *branch* (no rss sample landed in a 1-sample window) — that is a DIFFERENT CAUSE reaching the same branch, and it does **not** close this row. |
 | `with-slot.sh` green path into `mix check` | the wrapper, the token consume, and the sampler hand-off are exercised with a cheap command | ⛔ never run with `mix check` as the command — that is the queued slot run |
+| `mutate.sh` suite path GREEN (token present) | the refusal arm is proven | ⛔ the green arm runs a real suite, so it needs a slot. Not closed by argument. |
 | `mix check` self-test stages | both commands verified standalone, exactly as the alias invokes them | ⛔ **never run THROUGH the alias.** Added 2026-08-27; the box was queued, so no `mix check` has executed since. This is a path a healthy day does not exercise until someone runs the gate. |
 
 ## ⚠️ LATENT — cannot fire on today's tree, demonstrated by INDUCING the condition
@@ -69,7 +72,12 @@ invocation is at `:228`. **Both, because either alone can be satisfied by an acc
   a `wait` on a killed child exits 143 and a `kill` on a dead pid exits 1 — a cleanup defect that
   killed two landings elsewhere tonight *after* their suites had passed and *before* anything was
   printed. `|| true` holds regardless of what a later hygiene commit sets.
-- ⚠️ **The slot token gates ONE script.** `bin/with-slot.sh` cannot see a `mix check` typed
+- ⚠️ **The slot token now gates BOTH callers via one statement** (`bin/require-slot.sh`, sourced by
+  `with-slot.sh` and by `mutate.sh`'s suite path). It was gating only the wrapper — **the path of
+  least consequence** — while `bin/mutate.sh:228`, the only real `mix test` in this repo, was open.
+  Found by enumerating suite-starting lines rather than assuming, with the comment/`echo` hits
+  filtered and the raw count shown beside the filtered one.
+- ⚠️ **It still gates only what calls it.** `bin/with-slot.sh` cannot see a `mix check` typed
   directly, and that ungated route is exactly how seven silent suites happened elsewhere tonight.
   It is a real interlock against *the moment a waiter goes green*, not a lock on the repo. Recorded
   as a limit rather than presented as coverage.

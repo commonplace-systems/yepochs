@@ -28,15 +28,8 @@ if [[ $# -eq 0 ]]; then
   exit 2
 fi
 
-if [[ ! -f "$TOKEN" ]]; then
-  echo "⛔ REFUSED rc76: no slot token at '$TOKEN' — nothing was run."
-  echo "   The box being clear is permission from the HOST, not from the ORDERING."
-  echo "   Create it only when the queue names you:  touch $TOKEN"
-  exit 76
-fi
-
-# ⭐ The token is CONSUMED, not merely read. A token that survives its run is a
-# standing permission, and a standing permission is not a slot.
-rm -f "$TOKEN"
-echo "✅ slot token consumed; running under the sampler."
+# ⭐ ONE statement of the rule, sourced -- not a second copy of it.
+# shellcheck source=bin/require-slot.sh
+. "$HERE/require-slot.sh"
+require_slot "the wrapped command" || exit 76
 exec "$HERE/box-sample.sh" -i 2 -- "$@"
