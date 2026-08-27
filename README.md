@@ -215,6 +215,12 @@ its README for the same reason; this is the counterpart.
 7. **Anyone proposes deriving epoch identity from content** — measured impossible: a single-author
    re-authoring emits byte-identical output, so no pure function of the bytes distinguishes the
    namespaces (`docs/design/0008`).
+8. ⭐ **The box clears `available > 2500 MB` across several samples** — then adopt the two-run
+   landing design: plain `mix test` is the **verdict** (real timeouts, real concurrency), a
+   `--trace` run supplies arm names and must also pass, and **a plain-fails/traced-passes
+   disagreement is a timing-or-concurrency class, NOT a flake to retry away**. ⛔ Deferred only
+   because it doubles a 629-test + 12-property suite under a memory hold — not because it was
+   judged unnecessary. See `docs/design/0011`.
 
 ## Mutation testing
 
