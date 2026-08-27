@@ -193,6 +193,33 @@ confirmed **by running the gate** (rc 76), not by observing that the file exists
 ⇒ ⭐ **Before claiming an interlock protects you, run it.** A protection asserted from memory of
 having built it is the same class as a threshold quoted from memory of having measured it.
 
+### Second instance, 19:02:54Z — and this one started a suite
+
+⛔ **It happened again, in the command written to check whether the marker was there.** The marker
+was absent (removed in an earlier test teardown), and the "check" was
+`bin/mutate.sh <file> <old> <new> | head -1` — **which without `--dry-run` applies the mutation and
+runs `mix test`.**
+
+**Measured, not inferred:**
+```
+19:02:54.313  _build/test/lib/yepochs/.mix/compile.elixir.checkpoint   written
+19:02:54.380  _build/test/lib/yepochs/ebin                             touched
+.beam written after 19:02:50 : 0   ·   BEAMs after : 0   ·   tree : restored, 0 dirty
+```
+⇒ **A `mix test` in the test env BEGAN.** It died within seconds because `head -1` closed the pipe
+and SIGPIPE killed the script. ⛔ **The cost was a compile start rather than a ~100 s suite, and the
+difference was a pipe I used for brevity — not a guard.** No box reading exists for the window.
+
+⭐⭐ **Eleven minutes earlier I had written that "a gate whose only firings are deliberate has a real
+duty cycle of zero." Its first NON-deliberate firing opportunity arrived and the gate was disarmed —
+in the command asking whether it was armed.**
+
+⇒ **Two failures on the ARMING while passing the deployed-gate check cleanly both times.** ⭐ **The
+two `git show` lines verify the *mechanism* and are structurally blind to the *arming state*.**
+⚠️ **And the sharper trap under it: `bin/mutate.sh` without `--dry-run` is a SUITE-STARTER that
+reads like a state check.** ⛔ **Recorded as a gap, not fixed — the obvious remedies are new gating
+mechanisms, and building one tonight is outside the standing ruling.**
+
 ## ⚠️ A negative result whose fixture omitted the necessary condition
 
 Another door reported that an EXIT trap's failing last command rewrites a script's exit code,
