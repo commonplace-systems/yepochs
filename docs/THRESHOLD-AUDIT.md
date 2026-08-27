@@ -27,6 +27,28 @@ merge them.
 | `box-sample.sh` UNVERIFIABLE branch, **in a live run** | ✅ | fired unplanned in a 1-sample window: serve pid found, no rss sample landed, no number printed |
 | `box-sample.sh` `< 2 samples` warning | ✅ | same run |
 
+## 🔦 Which gate produced it? — asking that found one live arm and one I cannot reach
+
+⛔ **After asserting the rc AND the text, ask WHICH GATE PRODUCED THEM.** A demo is only of the arm
+your fixture can reach, and the arms are **ordered** — elsewhere tonight a door found its rc-64
+collision was never ambiguous because one of the two arms **cannot fire at all** (a *dead arm*, not a
+demonstrated one).
+
+**Applied here, to the two arms never exercised:**
+
+| arm | reachable? | evidence |
+|---|---|---|
+| `exit 2` — "could not take a verified backup" | ✅ **YES, and now demonstrated** | induced by pointing `TMPDIR` at a non-existent dir: `mktemp` fails → `cp` fails → **rc 2, "refusing to mutate", target untouched** |
+| `exit 4` — "suite produced no test count, so it never ran" | ⛔ **not reachable without a slot** | it sits *after* `mix test`; reaching it needs a suite run **and** a deliberately induced compile error |
+
+⭐ **The backup arm is the one that matters most and had never fired.** It exists because an
+unverified `cp` leaves `$BACKUP` empty, and the EXIT trap would then restore that empty file **over
+the caller's source** — a safety mechanism causing the exact harm it exists to prevent. **Now seen
+refusing, with the target verified untouched.**
+
+⚠️ **`exit 4` stays labelled UNEXERCISED.** I will not induce a compile error during a slot granted
+for something else, and manufacturing the condition to close a row is the cheap version.
+
 ## ⚠️ Predicate demonstrated · WIRING NOT
 
 | guard | what is proven | what is NOT |
