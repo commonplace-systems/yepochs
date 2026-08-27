@@ -43,6 +43,23 @@ merge them.
 ⭐ Both fire the moment the tree grows the shape they guard — which is exactly when they would
 otherwise start lying.
 
+## ⏱ Cheap flags — TIMED, not read
+
+⛔ **A flag that claims to be cheap must be cheap BY POSITION, NOT BY INTENTION.** Measured
+elsewhere tonight: a `--self-test` block placed *below* the suite invocation ran ~7 full suites while
+its author reported "no BEAM started" in four commit messages. **Reading the file is what let that
+ship; only the clock could have caught it.**
+
+| flag | measured | vs a suite (~100 s) |
+|---|---|---|
+| `mutate.sh --self-test` | 1349 ms | 0.013× |
+| `mutate.sh --dry-run` | 315 ms | 0.003× |
+| `box-sample.sh --self-test` | 170 ms | 0.002× |
+| `with-slot.sh` refusal | 26 ms | 0.0003× |
+
+Positional check beside the clock: `--dry-run` exits at `bin/mutate.sh:213`, the `mix test`
+invocation is at `:228`. **Both, because either alone can be satisfied by an accident.**
+
 ## ⛔ Known non-guards
 
 - `bin/box-sample.sh` **reports, it does not gate.** Checked rather than assumed: the only exits are
@@ -52,6 +69,16 @@ otherwise start lying.
   a `wait` on a killed child exits 143 and a `kill` on a dead pid exits 1 — a cleanup defect that
   killed two landings elsewhere tonight *after* their suites had passed and *before* anything was
   printed. `|| true` holds regardless of what a later hygiene commit sets.
+- ⚠️ **The slot token gates ONE script.** `bin/with-slot.sh` cannot see a `mix check` typed
+  directly, and that ungated route is exactly how seven silent suites happened elsewhere tonight.
+  It is a real interlock against *the moment a waiter goes green*, not a lock on the repo. Recorded
+  as a limit rather than presented as coverage.
+- ⭐ **Load-bearing vs incidental.** Two of this repo's clean answers tonight were INCIDENTAL and
+  have been converted: the teardown was safe only because `-e` was absent (now `|| true`, verified
+  under a forced `set -e`), and "not an adopter of the shared health tool" was true of committed
+  files while the Sol dispatch is typed by hand — the same runtime read of another tree, invisible
+  to any repo grep. Only the `--trace` absence is load-bearing, and only because a positive control
+  proved the grep could see its corpus.
 - No reachability check exists here, because nothing in this repo gates on a moving host term. That
   is **absence, not design** — if a host-dependent gate is ever added, it needs one, kept in the
   same edit as the gate it guards.
