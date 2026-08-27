@@ -59,7 +59,23 @@ while `mix test` is at `:281`; BEAM count sampled through all four cheap paths r
 against a positive control that goes 4→5.
 ⚠️ **And that is INCIDENTAL, not designed: `--dry-run` exists because I wanted the arms cheap on a
 busy box, not because I had seen this failure mode. One refactor moving that exit below `mix test`
-arms it silently.**
+arms it silently.** ⭐ Another door's version of the same point is the one to keep: *had the gate
+been the LAST check before `mix`, the same demo would have run a suite and printed a plausible pass.*
+
+⛔⛔ **AND MINE IS THE WEAKER OF THE TWO GREEN-ARM FORMS, WHICH IS A SEPARATE LIMITATION:**
+
+| form | what it proves |
+|---|---|
+| a `--dry-run` **flag** (mine) | the gates passed **and then it stopped** |
+| a **stub at the action** | the gates passed **on the real path**, with the guarded command replaced |
+
+⇒ **My green arm exits through a branch the real invocation never takes.** It establishes that the
+guards return 0; it does **not** establish that the real path *between* the last guard and
+`mix test` is sound, because that path is never walked. ⭐ **A flag proves the gate passes and
+stops; a stub proves the pre-flight passed where it actually runs.**
+⚠️ **Recorded as a limitation rather than repaired: converting `--dry-run` into an action-stub is a
+change to how the tool decides what to execute, and I am not making one while a slot is held
+elsewhere.**
 
 ⚠️ **`exit 4` stays labelled UNEXERCISED.** I will not induce a compile error during a slot granted
 for something else, and manufacturing the condition to close a row is the cheap version.
