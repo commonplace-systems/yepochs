@@ -21,8 +21,23 @@ rather than this sentence:
 ```sh
 git diff --name-only 00a1102..HEAD -- lib/ test/     # empty ⇒ the verdict still covers the tree
 ```
-⚠️ **Everything committed since is `bin/` and `docs/`.** Those cannot change the suite's verdict —
-**which is a different claim from "they were gated", and this file says which one it means.**
+⛔ **CORRECTION (19:15Z), because the sentence that stood here was false in the direction that
+flatters me.** It read *"everything committed since is `bin/` and `docs/`, and those cannot change
+the suite's verdict."* **True of the ExUnit suite. FALSE of `mix check`** — because `mix check` now
+runs `bin/mutate.sh --self-test` and `bin/box-sample.sh --self-test` as its first two stages, **which
+I wired in myself after that run.** ⇒ `bin/` **is** instrument, not decoration.
+
+**The two claims, kept apart:**
+
+| claim | status |
+|---|---|
+| the ExUnit verdict (629 tests + 12 properties, 0 failures) covers this tree | ✅ **holds** — `lib/` and `test/` unchanged since `00a1102`, verifiable in one command |
+| "my tree is gated by `mix check`" | ⛔ **FALSE** — the alias itself changed, two stages have **never run inside it**, and the scripts they invoke have moved by ~508 lines since |
+
+⭐ **A changed instrument invalidates a prior reading more completely than changed prose does:**
+prose leaves the measurement true of a subset; **a moved instrument leaves you not knowing what was
+measured.** This tree is in the *instrument-changed* class, not the *prose-only* class, and closing
+that is the one thing the pending `mix check` is for.
 
 ⭐ **Every gate in this repo, and how far it has actually been demonstrated, is in
 [`docs/THRESHOLD-AUDIT.md`](docs/THRESHOLD-AUDIT.md)** — including the rows that are **latent**,
