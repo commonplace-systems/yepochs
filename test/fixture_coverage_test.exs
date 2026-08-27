@@ -30,6 +30,22 @@ defmodule Yepochs.FixtureCoverageTest do
         "Recorded in test/conformance_test.exs."
   }
 
+  # An enumeration that shares no code path with `Path.wildcard/1`, so the two
+  # agreeing is evidence about the CORPUS rather than about one implementation.
+  defp walk_exs(dir) do
+    dir
+    |> File.ls!()
+    |> Enum.flat_map(fn entry ->
+      path = Path.join(dir, entry)
+
+      cond do
+        File.dir?(path) -> walk_exs(path)
+        String.ends_with?(entry, ".exs") -> [path]
+        true -> []
+      end
+    end)
+  end
+
   defp spec_fixture_numbers do
     body = File.read!(@spec_path)
 
@@ -83,8 +99,29 @@ defmodule Yepochs.FixtureCoverageTest do
     # and the stray-number test below would pass VACUOUSLY on an empty scan.
     files = Path.wildcard("test/**/*.exs")
 
-    assert length(files) > 20,
-           "the marker scan reached #{length(files)} files — it is not seeing the test tree"
+    # ⛔⛔ A NON-EMPTINESS CONTROL DETECTS A SCANNER THAT READ NOTHING. IT CANNOT
+    # DETECT ONE READING THE WRONG POPULATION. `biscuit` proved this on its own
+    # inventory: a top-level-only glob reported "0 gated modules, 10 files
+    # scanned" — rc 0, non-emptiness satisfied — with the gated module sitting
+    # in a subdirectory. "Did I scan anything" answered yes; "did I scan
+    # everything" answered no.
+    #
+    # ⇒ So the corpus is checked against an INDEPENDENT enumeration, not against
+    # a floor. A recursive walk and the glob must agree exactly; a glob narrowed
+    # to `test/*.exs` fails here even though >20 files would still be found.
+    # ⚠️ LATENT ON TODAY'S TREE, AND DEMONSTRATED ANYWAY. Every `.exs` here is
+    # top-level, so `test/**/*.exs` and `test/*.exs` return the same set and a
+    # narrowed glob is a NO-OP — the mutation survives. Induced with a temporary
+    # `test/nested/probe_test.exs`: narrowed glob → CAUGHT naming this test;
+    # correct glob → green. ⇒ The check cannot fire today and fires the moment a
+    # nested test file appears, which is exactly when it is needed.
+    walked = walk_exs("test") |> Enum.sort()
+
+    assert Enum.sort(files) == walked,
+           "the glob and an independent recursive walk disagree: glob #{length(files)}, " <>
+             "walk #{length(walked)}. ⇒ The scan is reading a DIFFERENT POPULATION than the " <>
+             "test tree, which a non-emptiness floor cannot see. " <>
+             "Missing from the glob: #{inspect(walked -- Enum.sort(files))}"
 
     assert MapSet.size(marked_numbers()) > 10,
            "the scan found #{MapSet.size(marked_numbers())} fixture markers across " <>
