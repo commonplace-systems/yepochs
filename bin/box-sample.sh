@@ -26,6 +26,57 @@ min_of() {
   awk 'NR==1||$1<m{m=$1} END{if(NR==0) print "NONE"; else print m}'
 }
 
+max_of() {
+  awk 'NR==1||$1>m{m=$1} END{if(NR==0) print "NONE"; else print m}'
+}
+
+# ⛔ `available` ALONE IS THE OPTIMISTIC FIGURE. One process on this box faulted
+# 2.4 GB back in and released it again inside fifteen minutes -- same pid, never
+# restarted, readings 2605 -> 385 -> 317 -> 2768 -> 298. That single
+# oscillation is larger than the whole fleet's danger margin.
+# ⇒ The number to judge on is the headroom you would have IF IT FAULTS BACK IN
+# MID-RUN:   available - (peak_rss - current_rss)
+#
+# ⚠️ 2768 is an OBSERVED peak (2026-08-27), not a bound. The sampler also tracks
+# the largest value IT sees and uses whichever is greater, so the figure cannot
+# be flattered by a peak that has already been exceeded.
+# ⭐ USE `VmHWM`, NOT THE LARGEST SAMPLE ANYONE HAPPENED TO TAKE. The observed
+# peak (2768 MB) is a READING; `VmHWM` is a PROPERTY of the process, it only
+# moves up, and it is immune to the sampling luck that produced the reading.
+# Measured on the same pid the same evening: VmHWM 2854 > 2768 — the sampled
+# peak was already stale when it was published.
+# ⚠️ The constant survives ONLY as a floor for when /proc is unreadable.
+SERVE_PEAK_FALLBACK_MB=2768
+
+serve_hwm_mb() {
+  local hwm
+  hwm="$(awk '/^VmHWM:/{print int($2/1024)}' "/proc/$1/status" 2>/dev/null)"
+  if [[ -z "$hwm" ]]; then echo "$SERVE_PEAK_FALLBACK_MB"; else echo "$hwm"; fi
+}
+
+# ⭐ SELECTOR, STATED: among `beam.smp` processes ONLY, the one whose
+# /proc/PID/cwd contains $SERVE_CWD_MATCH.
+# ⛔ Located by cwd, NEVER by `pgrep -f` on a typed pattern -- that matches the
+# searching shell's own command line. A cwd cannot match this script, because
+# this script does not run from the serve's directory.
+SERVE_CWD_MATCH="${SERVE_CWD_MATCH:-serve}"
+
+serve_pid() {
+  local p cwd
+  for p in $(pgrep -x beam.smp 2>/dev/null); do
+    cwd="$(readlink "/proc/$p/cwd" 2>/dev/null)" || continue
+    case "$cwd" in *"$SERVE_CWD_MATCH"*) echo "$p"; return 0 ;; esac
+  done
+  return 1
+}
+
+# ⭐ A missing measurement must never reach arithmetic, where it becomes 0.
+is_num() { [[ "$1" =~ ^-?[0-9]+$ ]]; }
+
+rss_mb() {
+  awk '/^VmRSS:/{print int($2/1024)}' "/proc/$1/status" 2>/dev/null
+}
+
 if [[ "${1:-}" == "--self-test" ]]; then
   # Known series, known answer. Both arms: a dip in the middle, and empty input.
   got="$(printf '4286\n934\n4351\n' | min_of)"
@@ -52,13 +103,16 @@ done
 [[ $# -gt 0 ]] || { echo "usage: $0 [-i SECS] -- <command...>" >&2; exit 2; }
 
 SAMPLES="$(mktemp)"
+SERVE_SAMPLES="$(mktemp)"
 # ⭐ ONE trap, covering every temp. A second `trap ... EXIT` REPLACES the first
 # rather than adding to it -- measured elsewhere in this fleet, and shipped by
 # the repo that had published the rule.
-trap 'rm -f "$SAMPLES"' EXIT
+trap 'rm -f "$SAMPLES" "$SERVE_SAMPLES"' EXIT
 
+SERVE_PID="$(serve_pid || true)"
 ( while :; do
     free -m | awk '/Mem:/ {print $7}' >> "$SAMPLES"
+    if [[ -n "$SERVE_PID" ]]; then rss_mb "$SERVE_PID" >> "$SERVE_SAMPLES"; fi
     sleep "$INTERVAL"
   done ) &
 # ⛔ Captured PID. NEVER `pkill -f` a pattern that appears in this script's own
@@ -73,7 +127,44 @@ wait "$SAMPLER_PID" 2>/dev/null
 
 N="$(wc -l < "$SAMPLES" | tr -d ' ')"
 MIN="$(min_of < "$SAMPLES")"
-echo "box: ${N} samples during run, MINIMUM available=${MIN} MB (interval ${INTERVAL}s)"
+# ⭐ THIRD FIELD: WHAT THE WINDOW COVERS. A sampler started late is a partial
+# instrument that reads exactly like a complete one. This one starts BEFORE the
+# command and stops AFTER it, so it covers the whole run by construction --
+# which is worth PRINTING, because a line that omits its coverage is
+# indistinguishable from one whose coverage is a tail.
+echo "box: ${N} samples, MINIMUM available=${MIN} MB (interval ${INTERVAL}s, window: WHOLE RUN -- sampler started before the command and stopped after it)"
+
+# ⛔ A MISSING MEASUREMENT MUST NOT RESOLVE TO THE REASSURING VALUE. If the
+# serve was not found, treating its RSS as 0 would print a COMFORTABLE headroom
+# number from an absence. Say "unknown" instead.
+if [[ -z "$SERVE_PID" ]]; then
+  echo "     serve: NOT FOUND (selector: beam.smp with cwd matching '${SERVE_CWD_MATCH}')"
+  echo "     ⇒ pessimistic headroom UNKNOWN — the ${MIN} MB above is the OPTIMISTIC figure."
+else
+  SERVE_MAX="$(max_of < "$SERVE_SAMPLES")"
+  HWM="$(serve_hwm_mb "$SERVE_PID")"
+  # ⛔ SAFE BY CONSTRUCTION, NOT SAFE-IF-THE-GUARD-FIRES. Bash arithmetic treats
+  # an empty or non-numeric value as 0, so `$(( MIN - (HWM - SERVE_MAX) ))` on a
+  # missing reading prints a PLAUSIBLE NUMBER rather than failing. Every operand
+  # is checked to be an integer before any arithmetic happens.
+  if is_num "$MIN" && is_num "$SERVE_MAX" && is_num "$HWM"; then
+    RESERVE=$(( HWM - SERVE_MAX ))
+    HEADROOM=$(( MIN - RESERVE ))
+    # ⭐ PRINT ALL THREE, because a reserve derived from a MONOTONIC high-water
+    # mark is a RATCHET: VmHWM only moves up and nothing but a restart resets
+    # it, so a criterion built on it gets harder to satisfy forever and never
+    # easier -- and each individual reading looks defensible while it drifts.
+    # Printing the reserve beside its inputs makes the drift READABLE instead of
+    # invisible. (A single number has nothing to disagree with.)
+    # ⚠️ HONEST LABEL: VmHWM is the most this process has EVER held SINCE IT
+    # STARTED -- not the most it holds. Those diverge further every day it is up.
+    echo "     serve: pid ${SERVE_PID} · rss now ${SERVE_MAX} MB · VmHWM ${HWM} MB (peak since start, monotonic)"
+    echo "     ⇒ reserve ${RESERVE} MB · PESSIMISTIC headroom ${HEADROOM} MB"
+  else
+    echo "     serve: pid ${SERVE_PID}, a reading was missing (min=${MIN} rss=${SERVE_MAX} hwm=${HWM})"
+    echo "     ⇒ headroom UNKNOWN — no number printed from a missing measurement."
+  fi
+fi
 # ⚠️ A sample count of 0 or 1 means the run was shorter than the interval: the
 # minimum is then an endpoint reading again, with none of its authority.
 if [[ "$N" -lt 2 ]]; then

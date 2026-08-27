@@ -22,10 +22,14 @@
 #   is ornamental. Mutate by INVERTING or by breaking the mechanism, not by
 #   loosening. (Demonstrated: DEMO 4 in the commit that added this file.)
 #
-# Usage: bin/mutate.sh <file> <old> <new> [test target]
+# Usage: bin/mutate.sh [--dry-run] <file> <old> <new> [test target]
+#   --dry-run applies the mutation, runs the expectation guard, restores, and
+#   exits WITHOUT running the suite — so both arms of the guard are
+#   demonstrable at zero cost to a busy box.
 # Exit:  0 mutation was CAUGHT (gate works) · 1 mutation SURVIVED (gate suspect)
 #        2 usage/precondition · 3 mutation changed nothing (malformed)
 #        4 suite never ran (compile error) — NOT a catch
+#        5 the mutation ALSO CHANGED THE EXPECTATIONS — no verdict available
 #
 # Works on a file with uncommitted changes; they are preserved. See the note
 # below for the one case that is not covered (SIGKILL).
@@ -42,6 +46,9 @@
 # it proceeds. If you add a gate here, keep it a redirect or capture rc.
 # `-e` is deliberately absent: mix test's failure is HANDLED, not fatal.
 set -uo pipefail
+
+DRY_RUN=0
+if [[ "${1:-}" == "--dry-run" ]]; then DRY_RUN=1; shift; fi
 
 FILE="${1:-}"; OLD="${2:-}"; NEW="${3:-}"; TARGET="${4:-}"
 
@@ -70,6 +77,50 @@ fi
 # `kill -9`ed mid-run the mutation persists. With the file committed you recover
 # with `git checkout --`; with uncommitted changes you do not. That is a caveat
 # to state, not a reason to refuse.
+
+# ⛔⛔ FACE (3) OF THE MUTATION TRAP: THE MUTATION MOVES THE EXPECTATION WITH IT.
+# A blanket substitution over a file that holds BOTH the code and its assertion
+# changes both — and the suite then asserts a function equal to itself and
+# prints a PASS that reads exactly like a working gate.
+#
+# The three faces, complete:
+#   (1) the mutation never applied            -> caught below, exit 3
+#   (2) it applied, the red came from a broken harness -> caught below, exit 4
+#   (3) IT APPLIED AND MOVED THE EXPECTATION  -> caught here, exit 5
+#
+# ⭐ THE STRUCTURAL ESCAPE COMES FIRST AND THIS IS ONLY THE DETECTOR. The check
+# and the thing checked must not live where ONE EDIT REACHES BOTH: compute one
+# side of the comparison, select the mutation by dispatch instead of editing, or
+# keep the expectations in a different file. This repo pays the third — targets
+# live in `lib/`, assertions in `test/` — but only BY CONVENTION: nothing stopped
+# this script being pointed at a test file, and then one edit reaches both.
+# ⇒ The fingerprint makes the convention enforceable rather than remembered.
+expectation_fingerprint() {
+  # Every .exs under test/, content-hashed. Uncommitted changes included, so
+  # this works on a dirty tree exactly as the backup/restore does.
+  find test -name '*.exs' -type f -print0 2>/dev/null \
+    | sort -z | xargs -0 cat 2>/dev/null | sha256sum | awk '{print $1}'
+}
+EXPECT_BEFORE="$(expectation_fingerprint)"
+
+# ⛔ THE FINGERPRINT WATCHES `test/` ONLY, SO IT IS BLIND WHERE A FILE HOLDS ITS
+# OWN ASSERTIONS. A DOCTEST IS EXACTLY THAT: the `iex>` example and the code it
+# exercises live in the SAME lib file, so a substitution can move both and the
+# fingerprint never changes.
+# ⚠️ LATENT ON TODAY'S TREE AND CLOSED ANYWAY — measured 2026-08-27: zero `iex>`
+# examples in lib/, so this cannot fire on the current tree. It fires the moment
+# a doctest is added, which is precisely when it would otherwise start lying.
+# ⭐ Demonstrated by inducing a doctest rather than by reasoning about it.
+if grep -q 'iex>' "$FILE" 2>/dev/null; then
+  echo "⛔ $FILE CONTAINS ITS OWN EXPECTATIONS (a doctest: 'iex>')."
+  echo "   The check and the thing checked live in one file, so a substitution"
+  echo "   can move BOTH and no fingerprint of test/ would notice. That is"
+  echo "   face (3), unobservable from here — refusing rather than reporting a"
+  echo "   verdict this tool cannot support."
+  echo "   ⇒ Scope the mutation to a line, or move the example into test/."
+  echo "   Nothing was changed."
+  exit 5
+fi
 
 BACKUP="$(mktemp)"
 # ⛔⛔ VERIFY THE BACKUP BEFORE ARMING THE TRAP. If `cp` failed, $BACKUP is an
@@ -100,7 +151,28 @@ if cmp -s "$BACKUP" "$FILE"; then
   exit 3
 fi
 
+# ⛔ THE GUARD. Assert the EXPECTATION IS UNCHANGED -- not merely that the target
+# changed. Placed BEFORE the suite runs, so the refusal costs no test run at all.
+EXPECT_AFTER="$(expectation_fingerprint)"
+if [[ "$EXPECT_BEFORE" != "$EXPECT_AFTER" ]]; then
+  echo "⛔ FACE (3): THE MUTATION ALSO CHANGED THE EXPECTATIONS."
+  echo "   Files under test/ moved with the target, so any green would be a"
+  echo "   function asserted equal to itself. This is NOT a surviving mutation"
+  echo "   and NOT a catch — no verdict is available from this run."
+  echo "   before: $EXPECT_BEFORE"
+  echo "   after:  $EXPECT_AFTER"
+  echo "   ⇒ Scope the substitution to the asserted line, or mutate lib/ only."
+  echo "   $FILE has been RESTORED; the tree is as you left it."
+  exit 5
+fi
+
 echo "mutation applied to $FILE ($(git diff --numstat -- "$FILE" | awk '{print $1"+ "$2"-"}'))"
+
+if [[ "$DRY_RUN" == "1" ]]; then
+  echo "--dry-run: mutation applied and the expectation guard PASSED; no suite run."
+  echo "   $FILE will be RESTORED on exit."
+  exit 0
+fi
 
 LOG="$(mktemp)"
 # ⛔ THE FAILING TEST NAME IS THE EVIDENCE, AND A COUNT IS NOT IT.
