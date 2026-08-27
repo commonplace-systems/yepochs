@@ -225,6 +225,29 @@ real absence** — and mine would have been loud, because it contradicted someon
   is well-ordered. ⭐ **Labelled rather than banked, and deliberately NOT "hardened":** silencing the
   `cp` would be wrong, because a failed restore must surface.
 
+## 🚀 Is the gate in the artifact you HOLD, or the artifact that is DEPLOYED?
+
+⛔ **A guard demonstrated on your working tree is silent about the script an invocation actually
+runs.** Measured elsewhere 2026-08-27: a door's slot gate existed only on its branch; `main` carried
+an older script with no gate at all. Checking out `main` to *test the gate* **swapped out the gate**,
+and the run landed 18 commits to origin without a slot. Its "no token, so I cannot start by
+accident" had been asserted five times and never once run — true of one checkout, false of the one
+that mattered.
+
+✅ **The check, two commands, no suite:**
+```sh
+git grep -n "slot_check\|slot_consume\|require_slot" origin/main -- bin/
+git diff --quiet origin/main -- bin/mutate.sh && echo identical
+```
+
+**Result here (18:58Z):** all four `bin/` scripts present at `origin/main`, gate call sites at
+`mutate.sh:115` and `:246`, and working tree **byte-identical to deployed** for all four.
+
+⚠️ **Residual, stated because the gate being deployed is not the whole claim:** the *arming* is
+local. `.slot-protocol` is untracked by design (a clone must be fail-open), so being gated depends
+on a file that is silently removable — and I removed it myself once, in a test teardown. **Deployed
+mechanism, local arming state; verify both.**
+
 ## ⛔ Known non-guards
 
 - `bin/box-sample.sh` **reports, it does not gate.** Checked rather than assumed: the only exits are
