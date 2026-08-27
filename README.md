@@ -5,8 +5,8 @@ extracted into its own package.
 
 ## Status
 
-**Measured at `1978436` (2026-08-27 17:52Z, `mix check`): spec r3 §6–§24 implemented, epoch-token
-minting shipped, 628 runner tests + 12 properties, 0 failures, Dialyzer 0 errors; consumed by
+**Measured at `55bd714` (2026-08-27 17:58Z, `mix check`): spec r3 §6–§24 implemented, epoch-token
+minting shipped, 629 runner tests + 12 properties, 0 failures, Dialyzer 0 errors; consumed by
 `commonplace-merkle-crdt` for compaction openers.**
 
 ⚠️ **This line is rewritten at every landing and is never appended below.** A count without the sha

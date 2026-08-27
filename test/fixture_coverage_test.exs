@@ -72,6 +72,26 @@ defmodule Yepochs.FixtureCoverageTest do
              inspect(unaccounted)
   end
 
+  test "the marker scan reached a non-empty corpus — 'no markers' must not read as 'I scanned nothing'" do
+    # ⛔ commonplace-markdown's finding, applied to this gate: an inventory that
+    # scans the wrong corpus pins the empty set FOREVER and reports OK forever.
+    # Their upstream script globbed `test/*.exs` (top level only) and returned
+    # 0 hits while a gated module sat in a subdirectory.
+    #
+    # ⚠️ This glob is already recursive, so that exact defect does not bite —
+    # but "found no markers" and "scanned no files" still share an observable,
+    # and the stray-number test below would pass VACUOUSLY on an empty scan.
+    files = Path.wildcard("test/**/*.exs")
+
+    assert length(files) > 20,
+           "the marker scan reached #{length(files)} files — it is not seeing the test tree"
+
+    assert MapSet.size(marked_numbers()) > 10,
+           "the scan found #{MapSet.size(marked_numbers())} fixture markers across " <>
+             "#{length(files)} files. ⇒ Either the markers were removed en masse, or the scan " <>
+             "is looking in the wrong place. Both are defects; neither is 'clean'."
+  end
+
   test "nothing claims a fixture number the spec does not define" do
     # ⚠️ The other direction, and it is not symmetric decoration: a marker for a
     # fixture that no longer exists means a test is anchored to a requirement
