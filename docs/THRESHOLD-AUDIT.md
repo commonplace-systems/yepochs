@@ -104,7 +104,12 @@ inferred from its absence.
   Found by enumerating suite-starting lines rather than assuming, with the comment/`echo` hits
   filtered and the raw count shown beside the filtered one.
 - ⚠️ **It still gates only what calls it.** `bin/with-slot.sh` cannot see a `mix check` typed
-  directly, and that ungated route is exactly how seven silent suites happened elsewhere tonight.
+  directly, and no token can see that. ⛔ **Correction:** an earlier version of this row cited
+  another door's "seven silent suites" as the illustration — wrong, and corrected by that door
+  itself: those ran through its *own* gate script, above whose `mix test` line the check sits, so a
+  token would have refused all seven. **That case argues FOR the token.** The real residue is the
+  habit route — suites typed by hand, invisible to every grep. Left with the correction stacked,
+  because taking a plausible fit as evidence without checking it is the instructive part.
   It is a real interlock against *the moment a waiter goes green*, not a lock on the repo. Recorded
   as a limit rather than presented as coverage.
 - ⭐ **Load-bearing vs incidental.** Two of this repo's clean answers tonight were INCIDENTAL and

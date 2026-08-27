@@ -10,9 +10,17 @@
 # step by attention, and attention is not a mechanism.
 #
 # ⚠️ THIS NARROWS THE HOLE, IT DOES NOT CLOSE IT. A bare `mix test` typed at a
-# prompt calls nothing in this file -- which is exactly how seven silent suites
-# escaped at another door tonight. Stated here so no reader mistakes it for a
-# lock on the repo.
+# prompt calls nothing in this file, and no token can see it.
+#
+# ⛔ CORRECTION, 2026-08-27: an earlier version of this comment illustrated that
+# limit with another door's "seven silent suites". THAT WAS WRONG, and the door
+# itself corrected it -- those suites ran through its OWN gate script, above
+# whose `mix test` line the check sits, so a token WOULD have refused all seven.
+# ⇒ That case is the argument FOR this file, not against it.
+# ⭐ Kept with the correction stacked rather than amended away, because the
+# error is the instructive part: I took a plausible fit as evidence WITHOUT
+# CHECKING IT, in the file about not doing that. The real residue is the HABIT
+# route -- suites typed by hand, invisible to every grep at every door.
 
 # ⛔⛔ SCOPE: GATE EVERY SUITE-STARTER *YOU INVOKE AS A DOOR IN A QUEUE* -- NOT
 # EVERY SUITE-STARTER. `bin/mutate.sh` is a REPOSITORY ARTIFACT: it must work
