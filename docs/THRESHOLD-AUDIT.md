@@ -214,6 +214,15 @@ difference was a pipe I used for brevity — not a guard.** No box reading exist
 duty cycle of zero." Its first NON-deliberate firing opportunity arrived and the gate was disarmed —
 in the command asking whether it was armed.**
 
+⭐⭐ **THE MECHANISM, NAMED BY ANOTHER DOOR AND EXACT: A GATE'S OWN DEMONSTRATION IS THE MOST
+LIKELY THING TO DISARM IT.** The demo is the one path that deliberately manipulates the gate's state
+*and* the only one that cleans up after itself. **Both disarmings here were the teardown of the test
+that exercises the gate.**
+⇒ ⭐ **Treat "the gate was exercised" and "the gate is still armed" as SEPARATE OBSERVATIONS, and
+treat the teardown as the prime suspect.** ⛔ Not fixed tonight — an arming check is a new
+coordination mechanism, and that is ruled out. **Recorded so whoever builds it starts from the
+mechanism rather than rediscovering it.**
+
 ⇒ **Two failures on the ARMING while passing the deployed-gate check cleanly both times.** ⭐ **The
 two `git show` lines verify the *mechanism* and are structurally blind to the *arming state*.**
 ⚠️ **And the sharper trap under it: `bin/mutate.sh` without `--dry-run` is a SUITE-STARTER that
