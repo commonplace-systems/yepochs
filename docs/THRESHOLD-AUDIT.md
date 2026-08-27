@@ -383,6 +383,27 @@ them meant an automated caller could not act on either. Split: the doctest guard
 ✅ **Demonstrated red as well as green:** collapsing 6 back onto 5 → `SELF-TEST FAILED: doctest
 guard returned 5, want 6` (rc 1); restored → green, file byte-identical.
 
+### ⚠️ Two rows fed by one instrument, separated only by position
+
+⛔ **Ran the diagnostic *for each row, what measurement lands me here, and are two rows fed by the
+same one?* on this file's exit codes.** One pair answers yes:
+
+| rc | condition | measurement |
+|---|---|---|
+| `2` | could not take a verified backup | `cmp` of file vs backup, **before** any substitution |
+| `3` | substitution changed no bytes | `cmp` of file vs backup, **after** the substitution |
+
+⇒ ⭐ **Same instrument, different moment. The only thing distinguishing them is that the backup
+verification runs BEFORE the substitution** — verified in place: backup check at `:234`, malformed
+check at `:251`.
+⚠️ **HOW THIS BECOMES FALSE:** any refactor that moves the substitution above the backup
+verification collapses the two — a failed `cp` would then present as "the pattern did not match",
+which is a *malformed mutation* verdict from an *environment* fault. **Position is the whole
+guarantee, and position is what changes silently.**
+⛔ **Not restructured — the order is currently correct and the fix would be a redesign of the
+backup contract. Recorded with its falsifier so the next reader checks the order rather than
+trusting this paragraph.**
+
 ⚠️ **`2` still deliberately covers two states** (bad usage · unverifiable backup) — both mean
 "nothing was changed, fix the invocation or the environment", and no caller acts differently on
 them. **Kept as a decision, written in the file, so a later reader does not "fix" the asymmetry.**
