@@ -51,12 +51,11 @@ defmodule Yepochs.YjsConformanceTest do
     end)
   end
 
-  # The view files are a fixed one-key shape; parsing them with a regex avoids
-  # adding a JSON dependency to a library that needs none.
   defp expected_text(name) do
-    json = File.read!(Path.join([@fixtures, name, "expected_view.json"]))
-    [_, text] = Regex.run(~r/"text"\s*:\s*"([^"]*)"/, json)
-    text
+    Path.join([@fixtures, name, "expected_view.json"])
+    |> File.read!()
+    |> Jason.decode!()
+    |> Map.fetch!("text")
   end
 
   defp assemble(name) do

@@ -59,9 +59,7 @@ defmodule Yepochs.YjsMapArrayConformanceTest do
 
       json = expected(name)
 
-      for {k, v} <- extract_pairs(json) do
-        assert YMap.get(doc, "m", k) == v, "#{name}: key #{k}"
-      end
+      assert YMap.to_map(doc, "m") == extract_pairs(json), name
     end
   end
 
@@ -79,9 +77,7 @@ defmodule Yepochs.YjsMapArrayConformanceTest do
       {:ok, s} = Snapshotter.snapshot(doc, [])
       {:ok, out} = Encoding.apply_update(Doc.new(client_id: 9), s.update)
 
-      for {k, v} <- extract_pairs(expected(name)) do
-        assert YMap.get(out, "m", k) == v, "#{name}: key #{k} lost by snapshot"
-      end
+      assert YMap.to_map(out, "m") == extract_pairs(expected(name)), name
     end
   end
 
@@ -161,16 +157,6 @@ defmodule Yepochs.YjsMapArrayConformanceTest do
     end
   end
 
-  # The fixture views are a fixed shape; parsing them directly keeps this library
-  # free of a JSON dependency it does not otherwise need.
-  defp extract_pairs(json) do
-    Regex.scan(~r/"([^"]+)"\s*:\s*"([^"]*)"/, json)
-    |> Enum.map(fn [_, k, v] -> {k, v} end)
-    |> Enum.reject(fn {k, _} -> k == "map" end)
-  end
-
-  defp extract_list(json) do
-    [_, inner] = Regex.run(~r/"array"\s*:\s*\[(.*?)\]/, json)
-    Regex.scan(~r/"([^"]*)"/, inner) |> Enum.map(fn [_, v] -> v end)
-  end
+  defp extract_pairs(json), do: Jason.decode!(json) |> Map.fetch!("map")
+  defp extract_list(json), do: Jason.decode!(json) |> Map.fetch!("array")
 end

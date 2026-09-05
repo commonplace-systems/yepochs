@@ -204,8 +204,8 @@ defmodule Yepochs.Rebase do
     {prefix, removed, inserted} = diff_string(before_text, after_text)
 
     if applicable_string?(current, prefix, removed) do
-      at = String.length(prefix)
-      doc = if removed != "", do: Text.delete(doc, name, at, String.length(removed)), else: doc
+      at = utf16_length(prefix)
+      doc = if removed != "", do: Text.delete(doc, name, at, utf16_length(removed)), else: doc
       doc = if inserted != "", do: Text.insert(doc, name, at, inserted), else: doc
       {:ok, doc, true}
     else
@@ -218,7 +218,13 @@ defmodule Yepochs.Rebase do
 
   defp applicable_string?(current, prefix, removed) do
     String.starts_with?(current, prefix) and
-      String.starts_with?(String.slice(current, String.length(prefix)..-1//1), removed)
+      String.starts_with?(String.replace_prefix(current, prefix, ""), removed)
+  end
+
+  # diff_string/2 yields UTF-8 substrings at scalar boundaries. Yelixer's
+  # text API addresses UTF-16 units; a scalar prefix may end within a grapheme.
+  defp utf16_length(text) do
+    div(byte_size(:unicode.characters_to_binary(text, :utf8, :utf16)), 2)
   end
 
   defp apply_array(name, before, edited, doc) do

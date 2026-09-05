@@ -81,8 +81,11 @@ defmodule Yepochs.MixProject do
 
   defp deps do
     [
-      {:yelixer, git: "https://github.com/commonplace-systems/yelixer.git", ref: "bc35a0e9"},
+      {:yelixer,
+       git: "https://github.com/commonplace-systems/yelixer.git",
+       ref: "bcaec6a3520c59464bab87daaab7e4f76546c9c5"},
       {:stream_data, "~> 1.0", only: [:test]},
+      {:jason, "~> 1.4"},
       {:dialyxir, "~> 1.4", only: [:dev], runtime: false}
     ]
   end
