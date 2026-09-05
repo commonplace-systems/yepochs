@@ -35,3 +35,5 @@ convention under existing durable interpretation tags. A versioned transition
 must preserve old bytes, references and admitted commit IDs. Unicode XML crossing
 and formatted-text positional parity are not established by this text/delete
 matrix; the existing explicit refusal tests remain in place.
+
+The complete repository gate also passed: `mix check` ran both shell self-tests, formatting, warnings-as-errors compilation, 656 tests plus 12 properties, and Dialyzer with zero errors and zero skips. The cold PLTs were built within the allocated resource window.
