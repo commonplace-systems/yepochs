@@ -27,12 +27,14 @@ The test-only `COMPAT_YELIXER_HARNESS` override permits the same modern oracle
 harness to run against the old pin; it does not replace the installed codec.
 Normal candidate runs use the harness in the pinned Git dependency.
 
-Adoption remains gated by saved-history interpretation and versioning. These
-tests do not prove that metadata produced under a grapheme codec and the same
-algorithm identifier can be reinterpreted under UTF-16. Snapshot version 3 and
-rebase version 1 are unchanged here; do not silently deploy the changed coordinate
-convention under existing durable interpretation tags. A versioned transition
-must preserve old bytes, references and admitted commit IDs. Unicode XML crossing
+Under the user ruling of 2026-09-05 18:52:45 UTC, breaking our own history where
+needed to match official Yjs 13.6.32 is an accepted compatibility cost. Preserving
+legacy views or implementing a versioned migration is no longer an adoption gate.
+Snapshot version 3 and rebase version 1 are unchanged in the tested candidate;
+old-reader rollback and legacy-view changes remain documented observations.
+Incoming new browser edits that silently diverge remain an adoption blocker.
+The permission does not authorize deleting or resetting live stores.
+Unicode XML crossing
 and formatted-text positional parity are not established by this text/delete
 matrix; the existing explicit refusal tests remain in place.
 
