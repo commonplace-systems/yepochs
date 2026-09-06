@@ -1,0 +1,2402 @@
+{
+  "scope": "Affected standalone controls at repaired codec; prior full suites remain evidence at their original pins. No consumer adoption/landing.",
+  "base": "2d8c6282203c28dd969cc7af76176752bc0e2f4d",
+  "lib_diff": "",
+  "manifest_lock_diff": "diff --git a/mix.exs b/mix.exs\nindex c7d7859..1d1b4e1 100644\n--- a/mix.exs\n+++ b/mix.exs\n@@ -83,7 +83,7 @@ defmodule Yepochs.MixProject do\n     [\n       {:yelixer,\n        git: \"https://github.com/commonplace-systems/yelixer.git\",\n-       ref: \"bcaec6a3520c59464bab87daaab7e4f76546c9c5\"},\n+       ref: \"59b04eb1ba4c03d003e91f8867db3bd90a517bf5\"},\n       {:stream_data, \"~> 1.0\", only: [:test]},\n       {:jason, \"~> 1.4\"},\n       {:dialyxir, \"~> 1.4\", only: [:dev], runtime: false}\ndiff --git a/mix.lock b/mix.lock\nindex d0b5ff8..e0fff8c 100644\n--- a/mix.lock\n+++ b/mix.lock\n@@ -4,5 +4,5 @@\n   \"jason\": {:hex, :jason, \"1.4.5\", \"2e3a008590b0b8d7388c20293e9dcc9cf3e5d642fd2a114e4cbbb52e595d940a\", [:mix], [{:decimal, \"~> 1.0 or ~> 2.0 or ~> 3.0\", [hex: :decimal, repo: \"hexpm\", optional: true]}], \"hexpm\", \"b0c823996102bcd0239b3c2444eb00409b72f6a140c1950bc8b457d836b30684\"},\n   \"stream_data\": {:hex, :stream_data, \"1.4.0\", \"026f929db613aabea6208012ae9b8970d3fd5f88b3bdf26831bc536f98c42036\", [:mix], [], \"hexpm\", \"2b0ee3a340dcce1c8cf6302a763ee757d1e01c54d6e16d9069062509d68b1dc9\"},\n   \"telemetry\": {:hex, :telemetry, \"1.4.2\", \"a0cb522801dffb1c49fe6e30561badffc7b6d0e180db1300df759faa22062855\", [:rebar3], [], \"hexpm\", \"928f6495066506077862c0d1646609eed891a4326bee3126ba54b60af61febb1\"},\n-  \"yelixer\": {:git, \"https://github.com/commonplace-systems/yelixer.git\", \"bcaec6a3520c59464bab87daaab7e4f76546c9c5\", [ref: \"bcaec6a3520c59464bab87daaab7e4f76546c9c5\"]},\n+  \"yelixer\": {:git, \"https://github.com/commonplace-systems/yelixer.git\", \"59b04eb1ba4c03d003e91f8867db3bd90a517bf5\", [ref: \"59b04eb1ba4c03d003e91f8867db3bd90a517bf5\"]},\n }",
+  "files": {
+    "mix.exs": "09d29041fc31c1cc288c1596e035a9426855ae723b08bf0abc8b5e95e476f6ab",
+    "mix.lock": "aee089a82781fb408d9553e6c7c0b5f78c3d3567a480c22ac54d835ffa3bc2d1"
+  },
+  "closure": [
+    {
+      "package": "yelixer",
+      "url": "https://github.com/commonplace-systems/yelixer.git",
+      "lock": "59b04eb1ba4c03d003e91f8867db3bd90a517bf5",
+      "installed": "59b04eb1ba4c03d003e91f8867db3bd90a517bf5"
+    }
+  ],
+  "compiled_modules": {
+    "yelixer": [
+      {
+        "file": "Elixir.Yelixer.BlockStore.beam",
+        "sha256": "4bf992c60e59040e165b19ea0b61b2b9d3d8dce65397a1d07310e71b7c0bcba6",
+        "mtime_utc": "2026-09-06T02:34:42+00:00"
+      },
+      {
+        "file": "Elixir.Yelixer.DeleteSet.beam",
+        "sha256": "8469a921916bff37a8a42dbe6deb9cc1671516fb59ca7251c8c770808d8ddaa1",
+        "mtime_utc": "2026-09-06T02:34:42+00:00"
+      },
+      {
+        "file": "Elixir.Yelixer.Doc.beam",
+        "sha256": "5a70c8e97bf983801d83837227d3b00eebe564d195d6582ab8ab4a509296a0c6",
+        "mtime_utc": "2026-09-06T02:34:42+00:00"
+      },
+      {
+        "file": "Elixir.Yelixer.DocServer.beam",
+        "sha256": "61c61f4a6c5152fd2843deb5db5a0926fcd1080072687e06a5ecd77cd36d95ec",
+        "mtime_utc": "2026-09-06T02:34:42+00:00"
+      },
+      {
+        "file": "Elixir.Yelixer.Encoding.beam",
+        "sha256": "4324f0d589269a39737b845a8e9b9a763d596a43c89641cea3b35068ef673217",
+        "mtime_utc": "2026-09-06T02:34:42+00:00"
+      },
+      {
+        "file": "Elixir.Yelixer.ID.beam",
+        "sha256": "3c342e34a5489156a0976947df1f82dfc7aa3bd673a1df2e5ad0b8c01b6ddaa7",
+        "mtime_utc": "2026-09-06T02:34:42+00:00"
+      },
+      {
+        "file": "Elixir.Yelixer.Integrate.beam",
+        "sha256": "3f3bf4a1597a646f18dd3a9f1beca7971387ec2228c41278dfaf98fa77056e14",
+        "mtime_utc": "2026-09-06T02:34:42+00:00"
+      },
+      {
+        "file": "Elixir.Yelixer.Item.beam",
+        "sha256": "6b7ff735a3ea1854634af9096e010f79130f8dbf2aa4a2fa37d01bee1cb1a45e",
+        "mtime_utc": "2026-09-06T02:34:42+00:00"
+      },
+      {
+        "file": "Elixir.Yelixer.StateVector.beam",
+        "sha256": "beb93769f3556001463cd476adc13f56370c7306cf2d7e63fb59e366c779f65a",
+        "mtime_utc": "2026-09-06T02:34:42+00:00"
+      },
+      {
+        "file": "Elixir.Yelixer.SyncProtocol.beam",
+        "sha256": "5d4825a59519fc0fa74d52374d5d73edb91d279dcc4526b41c9ad0bb6995f503",
+        "mtime_utc": "2026-09-06T02:34:42+00:00"
+      },
+      {
+        "file": "Elixir.Yelixer.Types.Array.beam",
+        "sha256": "415457aad7fe82f1aff9cd2f9d0390eccea381a4bfa88500e16f47a3c1bb44eb",
+        "mtime_utc": "2026-09-06T02:34:42+00:00"
+      },
+      {
+        "file": "Elixir.Yelixer.Types.Text.beam",
+        "sha256": "8451a0f19b7e8124c7757390574b92179bbc9e14bbe5d90818981c83d96c9776",
+        "mtime_utc": "2026-09-06T02:34:42+00:00"
+      },
+      {
+        "file": "Elixir.Yelixer.Types.XMLElement.beam",
+        "sha256": "86f82cdaa5a40f784a39730f2498be3ca0355d0a9da112bc6326092b4a5f2b8f",
+        "mtime_utc": "2026-09-06T02:34:42+00:00"
+      },
+      {
+        "file": "Elixir.Yelixer.Types.XMLEscape.beam",
+        "sha256": "c15aa938a8d2f83f6131c0fc1e2b9c41a7668a980bef909e29908f5b1d3ec31b",
+        "mtime_utc": "2026-09-06T02:34:42+00:00"
+      },
+      {
+        "file": "Elixir.Yelixer.Types.XMLFragment.beam",
+        "sha256": "79c71239274b69df804a151bc66452240a3a2431089360c0fe6b4fa6c8cb933f",
+        "mtime_utc": "2026-09-06T02:34:42+00:00"
+      },
+      {
+        "file": "Elixir.Yelixer.Types.XMLText.beam",
+        "sha256": "1ac8f192e9916b7640af5258aa57bb2ac53a144401456b79fdd8f84d1bd047bb",
+        "mtime_utc": "2026-09-06T02:34:42+00:00"
+      },
+      {
+        "file": "Elixir.Yelixer.Types.YMap.beam",
+        "sha256": "828ba8ca3a30eea4385f579473efb66aa6674b6f4d7aefc665ab130cc2199474",
+        "mtime_utc": "2026-09-06T02:34:42+00:00"
+      },
+      {
+        "file": "Elixir.Yelixer.Types.beam",
+        "sha256": "479a6e95fcb9aa27172d2116ea2d7579e57327ea1a37d498390e267e433eebf7",
+        "mtime_utc": "2026-09-06T02:34:42+00:00"
+      },
+      {
+        "file": "Elixir.Yelixer.beam",
+        "sha256": "5a4fd4c6494f922f7274e1c5bba4c3d88163026c6d7261974a142335074d90bc",
+        "mtime_utc": "2026-09-06T02:34:42+00:00"
+      }
+    ],
+    "yepochs": [
+      {
+        "file": "Elixir.Yepochs.Algorithm.beam",
+        "sha256": "2333a4889939ff6c02b1f971999b183c5b69116dbe33ba245a39ca12c72c3469",
+        "mtime_utc": "2026-09-06T02:34:45+00:00"
+      },
+      {
+        "file": "Elixir.Yepochs.Bridge.Basis.beam",
+        "sha256": "24baeb57e69a49bb97929b6340bd56807a4afe6812fe149c6d80919ea84dfe61",
+        "mtime_utc": "2026-09-06T02:34:45+00:00"
+      },
+      {
+        "file": "Elixir.Yepochs.Bridge.Delta.beam",
+        "sha256": "de7cafeba47d8f55dadf60068b7b65a5044800fc197959f8efca592574d46683",
+        "mtime_utc": "2026-09-06T02:34:45+00:00"
+      },
+      {
+        "file": "Elixir.Yepochs.Bridge.beam",
+        "sha256": "cb24ca3e0837fa60be2dea2d8ffe64f1898883e6f005593666d79c285135452b",
+        "mtime_utc": "2026-09-06T02:34:45+00:00"
+      },
+      {
+        "file": "Elixir.Yepochs.Crossing.Receipt.beam",
+        "sha256": "89aa8733bc2c519fd945e676b182017a0f8d8e1c24d5d9f4a4e28ad17e99a1a5",
+        "mtime_utc": "2026-09-06T02:34:45+00:00"
+      },
+      {
+        "file": "Elixir.Yepochs.Crossing.beam",
+        "sha256": "98cab38712aeae8e30090f01bc8eac51996015089a2edb2e791754df0d37dfc4",
+        "mtime_utc": "2026-09-06T02:34:45+00:00"
+      },
+      {
+        "file": "Elixir.Yepochs.Derivation.beam",
+        "sha256": "aeec3cd30d9a19f3232ec9158090d418e0c475429a8de6483da40ef0dd1b53b8",
+        "mtime_utc": "2026-09-06T02:34:45+00:00"
+      },
+      {
+        "file": "Elixir.Yepochs.EpochToken.beam",
+        "sha256": "ad504d232727c661c28ecd9cf2599f2cac5984ae7b84bb4b84e1e063800d8f11",
+        "mtime_utc": "2026-09-06T02:34:45+00:00"
+      },
+      {
+        "file": "Elixir.Yepochs.Error.beam",
+        "sha256": "7503b4b44d0e08a292b3aef8badbd73887c53b8317f9c229a96dd2e41273ae9b",
+        "mtime_utc": "2026-09-06T02:34:45+00:00"
+      },
+      {
+        "file": "Elixir.Yepochs.Limits.beam",
+        "sha256": "18c17fec3325c4b23add774d6b42589eb2e6870fbf8f741ba371aba3413c8926",
+        "mtime_utc": "2026-09-06T02:34:45+00:00"
+      },
+      {
+        "file": "Elixir.Yepochs.Preflight.beam",
+        "sha256": "99a876ac9e353355a2dd09a1073791bf0aaf44fe4c9233b840dc986594c96462",
+        "mtime_utc": "2026-09-06T02:34:45+00:00"
+      },
+      {
+        "file": "Elixir.Yepochs.Rebase.Adapter.beam",
+        "sha256": "a64714a18ee6d979ebb250b5f0bb1e7b80004e3a2288bb97cde8fb23f18d3934",
+        "mtime_utc": "2026-09-06T02:34:45+00:00"
+      },
+      {
+        "file": "Elixir.Yepochs.Rebase.Result.beam",
+        "sha256": "61b3fb8b524250d42132fc8d2ad31abfa68b1c13da125a6e072c93446a05a207",
+        "mtime_utc": "2026-09-06T02:34:45+00:00"
+      },
+      {
+        "file": "Elixir.Yepochs.Rebase.beam",
+        "sha256": "f0171135510825b1c30b5d79213603e42d7c0be04fd4f0bb0a369053dfef869e",
+        "mtime_utc": "2026-09-06T02:34:45+00:00"
+      },
+      {
+        "file": "Elixir.Yepochs.Snapshot.beam",
+        "sha256": "e7eb833d22f0d735c3560e7f27d0d4d1aa170d77be183b712273983b6e340d38",
+        "mtime_utc": "2026-09-06T02:34:45+00:00"
+      },
+      {
+        "file": "Elixir.Yepochs.Snapshotter.beam",
+        "sha256": "b24710607a92f416cf625e83092b11f6eedbffd7230e74aece5db46c54681cb2",
+        "mtime_utc": "2026-09-06T02:34:45+00:00"
+      },
+      {
+        "file": "Elixir.Yepochs.Span.beam",
+        "sha256": "eb34bf39d51d87b370568b5f20ab0fadf9ea5ece48d5b148bd5c5fe0876cd696",
+        "mtime_utc": "2026-09-06T02:34:45+00:00"
+      },
+      {
+        "file": "Elixir.Yepochs.Test.Updates.beam",
+        "sha256": "9eae1ba2d5323d64bc2fd28b9e749a1915466c80090921dcb01e90d716496663",
+        "mtime_utc": "2026-09-06T02:34:45+00:00"
+      },
+      {
+        "file": "Elixir.Yepochs.Translation.beam",
+        "sha256": "875e0415889fc6fe3d01bb515a9554e18f211e734b97ad9e722fe0458740dcea",
+        "mtime_utc": "2026-09-06T02:34:45+00:00"
+      },
+      {
+        "file": "Elixir.Yepochs.Translator.beam",
+        "sha256": "e111c9ef08d9cb5ff2f9601edfd1405c98974539ab89c4ce6f29abc2112f0a17",
+        "mtime_utc": "2026-09-06T02:34:45+00:00"
+      },
+      {
+        "file": "Elixir.Yepochs.Update.beam",
+        "sha256": "3e6e08ebe82729c3f52794dcef387dc8aefec481a4331242f798e08098d3bfb2",
+        "mtime_utc": "2026-09-06T02:34:45+00:00"
+      },
+      {
+        "file": "Elixir.Yepochs.beam",
+        "sha256": "9618995a6d19b3871dbc80379927873c0d35ae9a1fa583a8c75ce2cd6419017e",
+        "mtime_utc": "2026-09-06T02:34:45+00:00"
+      }
+    ]
+  },
+  "official_yjs": "13.6.32",
+  "cases": [
+    {
+      "module": "Yepochs.Utf16UnitCorpusTest",
+      "name": "test astral snapshot span uses two UTF-16 units",
+      "state": "nil",
+      "time_us": 40390
+    },
+    {
+      "module": "Yepochs.Utf16UnitCorpusTest",
+      "name": "test combining snapshot span uses two UTF-16 units",
+      "state": "nil",
+      "time_us": 170
+    },
+    {
+      "module": "Yepochs.Utf16UnitCorpusTest",
+      "name": "test ZWJ snapshot span uses five UTF-16 units",
+      "state": "nil",
+      "time_us": 135
+    },
+    {
+      "module": "Yepochs.Utf16UnitCorpusTest",
+      "name": "test BMP snapshot span remains the unit-agreement control",
+      "state": "nil",
+      "time_us": 121
+    },
+    {
+      "module": "Yepochs.Utf16UnitCorpusTest",
+      "name": "test two astral graphemes have a four-unit text length",
+      "state": "nil",
+      "time_us": 49
+    },
+    {
+      "module": "Yepochs.Utf16UnitCorpusTest",
+      "name": "test deleting one astral grapheme records a two-unit interval",
+      "state": "nil",
+      "time_us": 8015
+    },
+    {
+      "module": "Yepochs.Utf16UnitCorpusTest",
+      "name": "test translation preserves the astral delete-set interval",
+      "state": "nil",
+      "time_us": 13532
+    },
+    {
+      "module": "Yepochs.Utf16UnitCorpusTest",
+      "name": "test astral delete-set endpoint agrees with its snapshot coordinates",
+      "state": "nil",
+      "time_us": 313
+    },
+    {
+      "module": "Yepochs.Utf16UnitCorpusTest",
+      "name": "test astral plus BMP text has a three-unit length",
+      "state": "nil",
+      "time_us": 46
+    },
+    {
+      "module": "Yepochs.Utf16UnitCorpusTest",
+      "name": "test astral plus BMP snapshot span has three units",
+      "state": "nil",
+      "time_us": 99
+    },
+    {
+      "module": "Yepochs.Utf16UnitCorpusTest",
+      "name": "test translated insertion left anchor is the astral item's LAST unit",
+      "state": "nil",
+      "time_us": 381
+    },
+    {
+      "module": "Yepochs.Utf16UnitCorpusTest",
+      "name": "test translated insertion right anchor starts after the astral item",
+      "state": "nil",
+      "time_us": 205
+    },
+    {
+      "module": "Yepochs.SnapshotterTest",
+      "name": "test observable equivalence \u2014 \u00a710.2 applying the snapshot to an empty doc reproduces the source's visible text",
+      "state": "nil",
+      "time_us": 174
+    },
+    {
+      "module": "Yepochs.SnapshotterTest",
+      "name": "test observable equivalence \u2014 \u00a710.2 tombstoned content is not resurrected",
+      "state": "nil",
+      "time_us": 259
+    },
+    {
+      "module": "Yepochs.SnapshotterTest",
+      "name": "test observable equivalence \u2014 \u00a710.2 preserves a map plane alongside a text plane",
+      "state": "nil",
+      "time_us": 188
+    },
+    {
+      "module": "Yepochs.SnapshotterTest",
+      "name": "test observable equivalence \u2014 \u00a710.2 \u26d4 refuses to emit an EMPTY snapshot for a document that has content",
+      "state": "nil",
+      "time_us": 31
+    },
+    {
+      "module": "Yepochs.SnapshotterTest",
+      "name": "test observable equivalence \u2014 \u00a710.2 \u26d4 refuses an XML element with CHILDREN, which the replay silently drops",
+      "state": "nil",
+      "time_us": 4190
+    },
+    {
+      "module": "Yepochs.SnapshotterTest",
+      "name": "test observable equivalence \u2014 \u00a710.2 an XML element with attributes but NO children still snapshots",
+      "state": "nil",
+      "time_us": 162
+    },
+    {
+      "module": "Yepochs.SnapshotterTest",
+      "name": "test observable equivalence \u2014 \u00a710.2 refuses content it cannot faithfully re-author, rather than flattening it",
+      "state": "nil",
+      "time_us": 135
+    },
+    {
+      "module": "Yepochs.SnapshotterTest",
+      "name": "test algorithm version 3 \u2014 \u00a710.3 traversal, ruling 8.4 versioning selects the minimum source client id as the snapshot client id",
+      "state": "nil",
+      "time_us": 469
+    },
+    {
+      "module": "Yepochs.SnapshotterTest",
+      "name": "test algorithm version 3 \u2014 \u00a710.3 traversal, ruling 8.4 versioning uses client id 0 for an empty source",
+      "state": "nil",
+      "time_us": 27
+    },
+    {
+      "module": "Yepochs.SnapshotterTest",
+      "name": "test algorithm version 3 \u2014 \u00a710.3 traversal, ruling 8.4 versioning stamps snapshot algorithm version 3, not the legacy item-start version 2",
+      "state": "nil",
+      "time_us": 121
+    },
+    {
+      "module": "Yepochs.SnapshotterTest",
+      "name": "test derivation is SPAN-based and complete \u2014 \u00a710.5, \u00a727.1 covers EVERY emitted clock, even when the replay consolidates items",
+      "state": "nil",
+      "time_us": 614
+    },
+    {
+      "module": "Yepochs.SnapshotterTest",
+      "name": "test derivation is SPAN-based and complete \u2014 \u00a710.5, \u00a727.1 the derivation is a valid partial bijection",
+      "state": "nil",
+      "time_us": 460
+    },
+    {
+      "module": "Yepochs.SnapshotterTest",
+      "name": "test derivation is SPAN-based and complete \u2014 \u00a710.5, \u00a727.1 left is the ORIGIN and right is the DERIVED side",
+      "state": "nil",
+      "time_us": 117
+    },
+    {
+      "module": "Yepochs.SnapshotterTest",
+      "name": "test derivation is SPAN-based and complete \u2014 \u00a710.5, \u00a727.1 maps a reference into the MIDDLE of a consolidated item \u2014 \u00a727.1",
+      "state": "nil",
+      "time_us": 747
+    },
+    {
+      "module": "Yepochs.SnapshotterTest",
+      "name": "test derivation is SPAN-based and complete \u2014 \u00a710.5, \u00a727.1 SPLITS the derivation where source clocks are non-contiguous around tombstones",
+      "state": "nil",
+      "time_us": 18499
+    },
+    {
+      "module": "Yepochs.SnapshotterTest",
+      "name": "test derivation is SPAN-based and complete \u2014 \u00a710.5, \u00a727.1 maps every source clock to a target clock holding the SAME character",
+      "state": "nil",
+      "time_us": 6573
+    },
+    {
+      "module": "Yepochs.SnapshotterTest",
+      "name": "test derivation is SPAN-based and complete \u2014 \u00a710.5, \u00a727.1 pairs correctly across SEVERAL named types and SEVERAL map keys",
+      "state": "nil",
+      "time_us": 1566
+    },
+    {
+      "module": "Yepochs.SnapshotterTest",
+      "name": "test derivation is SPAN-based and complete \u2014 \u00a710.5, \u00a727.1 the result carries NO target epoch reference \u2014 \u00a710.1",
+      "state": "nil",
+      "time_us": 121
+    },
+    {
+      "module": "Yepochs.SnapshotterTest",
+      "name": "test determinism \u2014 \u00a710.4 repeated calls on the same decoded state produce byte-identical output",
+      "state": "nil",
+      "time_us": 4336
+    },
+    {
+      "module": "Yepochs.SnapshotterTest",
+      "name": "test determinism \u2014 \u00a710.4 does not depend on the source doc's own client_id field",
+      "state": "nil",
+      "time_us": 347
+    },
+    {
+      "module": "Yepochs.TranslatorTest",
+      "name": "test translate/4 \u2014 the strict fast path produces an update that applies to the DESTINATION with the right observable state",
+      "state": "nil",
+      "time_us": 487
+    },
+    {
+      "module": "Yepochs.TranslatorTest",
+      "name": "test translate/4 \u2014 the strict fast path translates a DELETE, so the destination loses the right characters",
+      "state": "nil",
+      "time_us": 373
+    },
+    {
+      "module": "Yepochs.TranslatorTest",
+      "name": "test translate/4 \u2014 the strict fast path \u26d4 does NOT reuse the source delete set unchanged \u2014 \u00a715.8",
+      "state": "nil",
+      "time_us": 290
+    },
+    {
+      "module": "Yepochs.TranslatorTest",
+      "name": "test translate/4 \u2014 the strict fast path preserves every identity the update itself authored \u2014 \u00a715.4",
+      "state": "nil",
+      "time_us": 482
+    },
+    {
+      "module": "Yepochs.TranslatorTest",
+      "name": "test translate/4 \u2014 the strict fast path rewrites external anchors into destination coordinates",
+      "state": "nil",
+      "time_us": 441
+    },
+    {
+      "module": "Yepochs.TranslatorTest",
+      "name": "test translate/4 \u2014 the strict fast path leaves references among the update's OWN items alone",
+      "state": "nil",
+      "time_us": 590
+    },
+    {
+      "module": "Yepochs.TranslatorTest",
+      "name": "test translate/4 \u2014 the strict fast path carries identity spans for every owned interval \u2014 \u00a715.4",
+      "state": "nil",
+      "time_us": 330
+    },
+    {
+      "module": "Yepochs.TranslatorTest",
+      "name": "test translate/4 \u2014 the strict fast path translates an ID-VALUED parent \u2014 \u00a715.7",
+      "state": "nil",
+      "time_us": 290
+    },
+    {
+      "module": "Yepochs.TranslatorTest",
+      "name": "test translate/4 \u2014 the strict fast path leaves a NAMED root parent unchanged \u2014 \u00a715.7",
+      "state": "nil",
+      "time_us": 62
+    },
+    {
+      "module": "Yepochs.TranslatorTest",
+      "name": "test translate/4 \u2014 the strict fast path \u26d4 no SOURCE-epoch coordinate survives in any identity-bearing field",
+      "state": "nil",
+      "time_us": 197
+    },
+    {
+      "module": "Yepochs.TranslatorTest",
+      "name": "test translate/4 \u2014 the strict fast path records the strict translation algorithm",
+      "state": "nil",
+      "time_us": 338
+    },
+    {
+      "module": "Yepochs.TranslatorTest",
+      "name": "test translate/4 \u2014 the strict fast path crosses RIGHT-to-left as well, because the bridge is bilateral",
+      "state": "nil",
+      "time_us": 534
+    },
+    {
+      "module": "Yepochs.TranslatorTest",
+      "name": "test determinism \u2014 \u00a715.10 the same input yields byte-identical output",
+      "state": "nil",
+      "time_us": 6267
+    },
+    {
+      "module": "Yepochs.TranslatorTest",
+      "name": "test determinism \u2014 \u00a715.10 an equivalent bridge built in a different span order yields the same bytes",
+      "state": "nil",
+      "time_us": 266
+    },
+    {
+      "module": "Yepochs.TranslatorTest",
+      "name": "test it is the low-level API, so it surfaces strict failures \u2014 \u00a715.3 propagates a missing anchor rather than re-authoring",
+      "state": "nil",
+      "time_us": 129
+    },
+    {
+      "module": "Yepochs.TranslatorTest",
+      "name": "test it is the low-level API, so it surfaces strict failures \u2014 \u00a715.3 propagates a missing delete target",
+      "state": "nil",
+      "time_us": 142
+    },
+    {
+      "module": "Yepochs.TranslatorTest",
+      "name": "test it is the low-level API, so it surfaces strict failures \u2014 \u00a715.3 emits no partial update when preflight fails",
+      "state": "nil",
+      "time_us": 135
+    },
+    {
+      "module": "Yepochs.TranslatePathTest",
+      "name": "test translates across two composed bridges",
+      "state": "nil",
+      "time_us": 305
+    },
+    {
+      "module": "Yepochs.TranslatePathTest",
+      "name": "test translates across three composed bridges",
+      "state": "nil",
+      "time_us": 212
+    },
+    {
+      "module": "Yepochs.TranslatePathTest",
+      "name": "test a single-bridge path behaves like translate/4",
+      "state": "nil",
+      "time_us": 247
+    },
+    {
+      "module": "Yepochs.TranslatePathTest",
+      "name": "test rejects a disconnected path",
+      "state": "nil",
+      "time_us": 116
+    },
+    {
+      "module": "Yepochs.TranslatePathTest",
+      "name": "test rejects an empty path",
+      "state": "nil",
+      "time_us": 89
+    },
+    {
+      "module": "Yepochs.TranslatePathTest",
+      "name": "test fails strictly when composition loses the coverage the edit needs",
+      "state": "nil",
+      "time_us": 192
+    },
+    {
+      "module": "Yepochs.UnicodeRuntimeTest",
+      "name": "test reauthoring can delete just a combining mark at a scalar boundary",
+      "state": "nil",
+      "time_us": 234699
+    },
+    {
+      "module": "Yepochs.UnicodeRuntimeTest",
+      "name": "test ascii: foreign snapshot and bidirectional insert/delete crossing",
+      "state": "nil",
+      "time_us": 270201
+    },
+    {
+      "module": "Yepochs.UnicodeRuntimeTest",
+      "name": "test ascii: positional reauthoring converts its diff to UTF-16",
+      "state": "nil",
+      "time_us": 255926
+    },
+    {
+      "module": "Yepochs.UnicodeRuntimeTest",
+      "name": "test precomposed: foreign snapshot and bidirectional insert/delete crossing",
+      "state": "nil",
+      "time_us": 242207
+    },
+    {
+      "module": "Yepochs.UnicodeRuntimeTest",
+      "name": "test precomposed: positional reauthoring converts its diff to UTF-16",
+      "state": "nil",
+      "time_us": 235926
+    },
+    {
+      "module": "Yepochs.UnicodeRuntimeTest",
+      "name": "test combining: foreign snapshot and bidirectional insert/delete crossing",
+      "state": "nil",
+      "time_us": 269668
+    },
+    {
+      "module": "Yepochs.UnicodeRuntimeTest",
+      "name": "test combining: positional reauthoring converts its diff to UTF-16",
+      "state": "nil",
+      "time_us": 338598
+    },
+    {
+      "module": "Yepochs.UnicodeRuntimeTest",
+      "name": "test astral: foreign snapshot and bidirectional insert/delete crossing",
+      "state": "nil",
+      "time_us": 316196
+    },
+    {
+      "module": "Yepochs.UnicodeRuntimeTest",
+      "name": "test astral: positional reauthoring converts its diff to UTF-16",
+      "state": "nil",
+      "time_us": 310555
+    },
+    {
+      "module": "Yepochs.UnicodeRuntimeTest",
+      "name": "test zwj: foreign snapshot and bidirectional insert/delete crossing",
+      "state": "nil",
+      "time_us": 284968
+    },
+    {
+      "module": "Yepochs.UnicodeRuntimeTest",
+      "name": "test zwj: positional reauthoring converts its diff to UTF-16",
+      "state": "nil",
+      "time_us": 318275
+    },
+    {
+      "module": "Yepochs.UnicodeRuntimeTest",
+      "name": "test flag: foreign snapshot and bidirectional insert/delete crossing",
+      "state": "nil",
+      "time_us": 217600
+    },
+    {
+      "module": "Yepochs.UnicodeRuntimeTest",
+      "name": "test flag: positional reauthoring converts its diff to UTF-16",
+      "state": "nil",
+      "time_us": 214047
+    },
+    {
+      "module": "Yepochs.UnicodeRuntimeTest",
+      "name": "test mixed: foreign snapshot and bidirectional insert/delete crossing",
+      "state": "nil",
+      "time_us": 234696
+    },
+    {
+      "module": "Yepochs.UnicodeRuntimeTest",
+      "name": "test mixed: positional reauthoring converts its diff to UTF-16",
+      "state": "nil",
+      "time_us": 244004
+    }
+  ],
+  "executed": 70,
+  "summary": [
+    "70 tests, 0 failures"
+  ],
+  "rc": 0,
+  "stdout_sha256": "6809125aaaa3df39ff3490b5516c645d4106e7b29096b791d97d49dd0aee8ca8",
+  "synthetic_oracle_transcript": [
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 200
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "text": "e\u0301A",
+        "cmd": "insert_text",
+        "pos": 0
+      },
+      "reply": {
+        "length": 3,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "encode"
+      },
+      "reply": {
+        "ok": true,
+        "update_hex": "0101c80100040107636f6e74656e740465cc814100"
+      }
+    },
+    {
+      "command": {
+        "len": 1,
+        "cmd": "delete_text",
+        "pos": 1
+      },
+      "reply": {
+        "length": 2,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "encode"
+      },
+      "reply": {
+        "ok": true,
+        "update_hex": "0103c80100040107636f6e74656e74016584c8010002cc8184c80101014101c801010101"
+      }
+    },
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 600
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "0101c80100040107636f6e74656e740465cc814100"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "0001c801010101"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "name": "content",
+        "cmd": "text_content"
+      },
+      "reply": {
+        "ok": true,
+        "text": "eA"
+      }
+    },
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 200
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "text": "LabR",
+        "cmd": "insert_text",
+        "pos": 0
+      },
+      "reply": {
+        "length": 4,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "encode"
+      },
+      "reply": {
+        "ok": true,
+        "update_hex": "0101c80100040107636f6e74656e74044c61625200"
+      }
+    },
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 400
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "0101c80100040107636f6e74656e74044c61625200"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "name": "content",
+        "cmd": "text_content"
+      },
+      "reply": {
+        "ok": true,
+        "text": "LabR"
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "01016400c4c80102c80103012100"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "name": "content",
+        "cmd": "text_content"
+      },
+      "reply": {
+        "ok": true,
+        "text": "Lab!R"
+      }
+    },
+    {
+      "command": {
+        "len": 2,
+        "cmd": "delete_text",
+        "pos": 1
+      },
+      "reply": {
+        "length": 3,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "text": "$",
+        "cmd": "insert_text",
+        "pos": 3
+      },
+      "reply": {
+        "length": 4,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "encode",
+        "sv": {
+          "100": 1,
+          "200": 4
+        }
+      },
+      "reply": {
+        "ok": true,
+        "update_hex": "010190030084c80103012401c801010102"
+      }
+    },
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 700
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "030190030084c80103012403c80100040107636f6e74656e74014c81c801000284c801020152016400c4c80102c80103012101c801010102"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "name": "content",
+        "cmd": "text_content"
+      },
+      "reply": {
+        "ok": true,
+        "text": "L!R$"
+      }
+    },
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 200
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "text": "abAB",
+        "cmd": "insert_text",
+        "pos": 0
+      },
+      "reply": {
+        "length": 4,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "encode"
+      },
+      "reply": {
+        "ok": true,
+        "update_hex": "0101c80100040107636f6e74656e74046162414200"
+      }
+    },
+    {
+      "command": {
+        "len": 1,
+        "cmd": "delete_text",
+        "pos": 2
+      },
+      "reply": {
+        "length": 3,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "text": "X",
+        "cmd": "insert_text",
+        "pos": 2
+      },
+      "reply": {
+        "length": 4,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "encode"
+      },
+      "reply": {
+        "ok": true,
+        "update_hex": "0104c80100040107636f6e74656e7402616284c80101014184c801020142c4c80102c80103015801c801010201"
+      }
+    },
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 600
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "0101c80100040107636f6e74656e74046162414200"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "0101f40300c4c80101c80103015801c801010201"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "name": "content",
+        "cmd": "text_content"
+      },
+      "reply": {
+        "ok": true,
+        "text": "abXB"
+      }
+    },
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 200
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "text": "L\u00e9R",
+        "cmd": "insert_text",
+        "pos": 0
+      },
+      "reply": {
+        "length": 3,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "encode"
+      },
+      "reply": {
+        "ok": true,
+        "update_hex": "0101c80100040107636f6e74656e74044cc3a95200"
+      }
+    },
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 400
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "0101c80100040107636f6e74656e74044cc3a95200"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "name": "content",
+        "cmd": "text_content"
+      },
+      "reply": {
+        "ok": true,
+        "text": "L\u00e9R"
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "01016400c4c80101c80102012100"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "name": "content",
+        "cmd": "text_content"
+      },
+      "reply": {
+        "ok": true,
+        "text": "L\u00e9!R"
+      }
+    },
+    {
+      "command": {
+        "len": 1,
+        "cmd": "delete_text",
+        "pos": 1
+      },
+      "reply": {
+        "length": 3,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "text": "$",
+        "cmd": "insert_text",
+        "pos": 3
+      },
+      "reply": {
+        "length": 4,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "encode",
+        "sv": {
+          "100": 1,
+          "200": 3
+        }
+      },
+      "reply": {
+        "ok": true,
+        "update_hex": "010190030084c80102012401c801010101"
+      }
+    },
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 700
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "030190030084c80102012403c80100040107636f6e74656e74014c81c801000184c801010152016400c4c80101c80102012101c801010101"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "name": "content",
+        "cmd": "text_content"
+      },
+      "reply": {
+        "ok": true,
+        "text": "L!R$"
+      }
+    },
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 200
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "text": "\u00e9AB",
+        "cmd": "insert_text",
+        "pos": 0
+      },
+      "reply": {
+        "length": 3,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "encode"
+      },
+      "reply": {
+        "ok": true,
+        "update_hex": "0101c80100040107636f6e74656e7404c3a9414200"
+      }
+    },
+    {
+      "command": {
+        "len": 1,
+        "cmd": "delete_text",
+        "pos": 1
+      },
+      "reply": {
+        "length": 2,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "text": "X",
+        "cmd": "insert_text",
+        "pos": 1
+      },
+      "reply": {
+        "length": 3,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "encode"
+      },
+      "reply": {
+        "ok": true,
+        "update_hex": "0104c80100040107636f6e74656e7402c3a984c80100014184c801010142c4c80101c80102015801c801010101"
+      }
+    },
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 600
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "0101c80100040107636f6e74656e7404c3a9414200"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "0101f40300c4c80100c80102015801c801010101"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "name": "content",
+        "cmd": "text_content"
+      },
+      "reply": {
+        "ok": true,
+        "text": "\u00e9XB"
+      }
+    },
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 200
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "text": "Le\u0301R",
+        "cmd": "insert_text",
+        "pos": 0
+      },
+      "reply": {
+        "length": 4,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "encode"
+      },
+      "reply": {
+        "ok": true,
+        "update_hex": "0101c80100040107636f6e74656e74054c65cc815200"
+      }
+    },
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 400
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "0101c80100040107636f6e74656e74054c65cc815200"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "name": "content",
+        "cmd": "text_content"
+      },
+      "reply": {
+        "ok": true,
+        "text": "Le\u0301R"
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "01016400c4c80102c80103012100"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "name": "content",
+        "cmd": "text_content"
+      },
+      "reply": {
+        "ok": true,
+        "text": "Le\u0301!R"
+      }
+    },
+    {
+      "command": {
+        "len": 2,
+        "cmd": "delete_text",
+        "pos": 1
+      },
+      "reply": {
+        "length": 3,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "text": "$",
+        "cmd": "insert_text",
+        "pos": 3
+      },
+      "reply": {
+        "length": 4,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "encode",
+        "sv": {
+          "100": 1,
+          "200": 4
+        }
+      },
+      "reply": {
+        "ok": true,
+        "update_hex": "010190030084c80103012401c801010102"
+      }
+    },
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 700
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "030190030084c80103012403c80100040107636f6e74656e74014c81c801000284c801020152016400c4c80102c80103012101c801010102"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "name": "content",
+        "cmd": "text_content"
+      },
+      "reply": {
+        "ok": true,
+        "text": "L!R$"
+      }
+    },
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 200
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "text": "e\u0301AB",
+        "cmd": "insert_text",
+        "pos": 0
+      },
+      "reply": {
+        "length": 4,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "encode"
+      },
+      "reply": {
+        "ok": true,
+        "update_hex": "0101c80100040107636f6e74656e740565cc81414200"
+      }
+    },
+    {
+      "command": {
+        "len": 1,
+        "cmd": "delete_text",
+        "pos": 2
+      },
+      "reply": {
+        "length": 3,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "text": "X",
+        "cmd": "insert_text",
+        "pos": 2
+      },
+      "reply": {
+        "length": 4,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "encode"
+      },
+      "reply": {
+        "ok": true,
+        "update_hex": "0104c80100040107636f6e74656e740365cc8184c80101014184c801020142c4c80102c80103015801c801010201"
+      }
+    },
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 600
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "0101c80100040107636f6e74656e740565cc81414200"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "0101f40300c4c80101c80103015801c801010201"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "name": "content",
+        "cmd": "text_content"
+      },
+      "reply": {
+        "ok": true,
+        "text": "e\u0301XB"
+      }
+    },
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 200
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "text": "L\ud83d\ude00R",
+        "cmd": "insert_text",
+        "pos": 0
+      },
+      "reply": {
+        "length": 4,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "encode"
+      },
+      "reply": {
+        "ok": true,
+        "update_hex": "0101c80100040107636f6e74656e74064cf09f98805200"
+      }
+    },
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 400
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "0101c80100040107636f6e74656e74064cf09f98805200"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "name": "content",
+        "cmd": "text_content"
+      },
+      "reply": {
+        "ok": true,
+        "text": "L\ud83d\ude00R"
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "01016400c4c80102c80103012100"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "name": "content",
+        "cmd": "text_content"
+      },
+      "reply": {
+        "ok": true,
+        "text": "L\ud83d\ude00!R"
+      }
+    },
+    {
+      "command": {
+        "len": 2,
+        "cmd": "delete_text",
+        "pos": 1
+      },
+      "reply": {
+        "length": 3,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "text": "$",
+        "cmd": "insert_text",
+        "pos": 3
+      },
+      "reply": {
+        "length": 4,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "encode",
+        "sv": {
+          "100": 1,
+          "200": 4
+        }
+      },
+      "reply": {
+        "ok": true,
+        "update_hex": "010190030084c80103012401c801010102"
+      }
+    },
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 700
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "030190030084c80103012403c80100040107636f6e74656e74014c81c801000284c801020152016400c4c80102c80103012101c801010102"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "name": "content",
+        "cmd": "text_content"
+      },
+      "reply": {
+        "ok": true,
+        "text": "L!R$"
+      }
+    },
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 200
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "text": "\ud83d\ude00AB",
+        "cmd": "insert_text",
+        "pos": 0
+      },
+      "reply": {
+        "length": 4,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "encode"
+      },
+      "reply": {
+        "ok": true,
+        "update_hex": "0101c80100040107636f6e74656e7406f09f9880414200"
+      }
+    },
+    {
+      "command": {
+        "len": 1,
+        "cmd": "delete_text",
+        "pos": 2
+      },
+      "reply": {
+        "length": 3,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "text": "X",
+        "cmd": "insert_text",
+        "pos": 2
+      },
+      "reply": {
+        "length": 4,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "encode"
+      },
+      "reply": {
+        "ok": true,
+        "update_hex": "0104c80100040107636f6e74656e7404f09f988084c80101014184c801020142c4c80102c80103015801c801010201"
+      }
+    },
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 600
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "0101c80100040107636f6e74656e7406f09f9880414200"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "0101f40300c4c80101c80103015801c801010201"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "name": "content",
+        "cmd": "text_content"
+      },
+      "reply": {
+        "ok": true,
+        "text": "\ud83d\ude00XB"
+      }
+    },
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 200
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "text": "L\ud83d\udc69\ud83c\udffd\u200d\ud83d\udcbbR",
+        "cmd": "insert_text",
+        "pos": 0
+      },
+      "reply": {
+        "length": 9,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "encode"
+      },
+      "reply": {
+        "ok": true,
+        "update_hex": "0101c80100040107636f6e74656e74114cf09f91a9f09f8fbde2808df09f92bb5200"
+      }
+    },
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 400
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "0101c80100040107636f6e74656e74114cf09f91a9f09f8fbde2808df09f92bb5200"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "name": "content",
+        "cmd": "text_content"
+      },
+      "reply": {
+        "ok": true,
+        "text": "L\ud83d\udc69\ud83c\udffd\u200d\ud83d\udcbbR"
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "01016400c4c80107c80108012100"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "name": "content",
+        "cmd": "text_content"
+      },
+      "reply": {
+        "ok": true,
+        "text": "L\ud83d\udc69\ud83c\udffd\u200d\ud83d\udcbb!R"
+      }
+    },
+    {
+      "command": {
+        "len": 7,
+        "cmd": "delete_text",
+        "pos": 1
+      },
+      "reply": {
+        "length": 3,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "text": "$",
+        "cmd": "insert_text",
+        "pos": 3
+      },
+      "reply": {
+        "length": 4,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "encode",
+        "sv": {
+          "100": 1,
+          "200": 9
+        }
+      },
+      "reply": {
+        "ok": true,
+        "update_hex": "010190030084c80108012401c801010107"
+      }
+    },
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 700
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "030190030084c80108012403c80100040107636f6e74656e74014c81c801000784c801070152016400c4c80107c80108012101c801010107"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "name": "content",
+        "cmd": "text_content"
+      },
+      "reply": {
+        "ok": true,
+        "text": "L!R$"
+      }
+    },
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 200
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "text": "\ud83d\udc69\ud83c\udffd\u200d\ud83d\udcbbAB",
+        "cmd": "insert_text",
+        "pos": 0
+      },
+      "reply": {
+        "length": 9,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "encode"
+      },
+      "reply": {
+        "ok": true,
+        "update_hex": "0101c80100040107636f6e74656e7411f09f91a9f09f8fbde2808df09f92bb414200"
+      }
+    },
+    {
+      "command": {
+        "len": 1,
+        "cmd": "delete_text",
+        "pos": 7
+      },
+      "reply": {
+        "length": 8,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "text": "X",
+        "cmd": "insert_text",
+        "pos": 7
+      },
+      "reply": {
+        "length": 9,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "encode"
+      },
+      "reply": {
+        "ok": true,
+        "update_hex": "0104c80100040107636f6e74656e740ff09f91a9f09f8fbde2808df09f92bb84c80106014184c801070142c4c80107c80108015801c801010701"
+      }
+    },
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 600
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "0101c80100040107636f6e74656e7411f09f91a9f09f8fbde2808df09f92bb414200"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "0101f40300c4c80106c80108015801c801010701"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "name": "content",
+        "cmd": "text_content"
+      },
+      "reply": {
+        "ok": true,
+        "text": "\ud83d\udc69\ud83c\udffd\u200d\ud83d\udcbbXB"
+      }
+    },
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 200
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "text": "L\ud83c\uddfa\ud83c\uddf8R",
+        "cmd": "insert_text",
+        "pos": 0
+      },
+      "reply": {
+        "length": 6,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "encode"
+      },
+      "reply": {
+        "ok": true,
+        "update_hex": "0101c80100040107636f6e74656e740a4cf09f87baf09f87b85200"
+      }
+    },
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 400
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "0101c80100040107636f6e74656e740a4cf09f87baf09f87b85200"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "name": "content",
+        "cmd": "text_content"
+      },
+      "reply": {
+        "ok": true,
+        "text": "L\ud83c\uddfa\ud83c\uddf8R"
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "01016400c4c80104c80105012100"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "name": "content",
+        "cmd": "text_content"
+      },
+      "reply": {
+        "ok": true,
+        "text": "L\ud83c\uddfa\ud83c\uddf8!R"
+      }
+    },
+    {
+      "command": {
+        "len": 4,
+        "cmd": "delete_text",
+        "pos": 1
+      },
+      "reply": {
+        "length": 3,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "text": "$",
+        "cmd": "insert_text",
+        "pos": 3
+      },
+      "reply": {
+        "length": 4,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "encode",
+        "sv": {
+          "100": 1,
+          "200": 6
+        }
+      },
+      "reply": {
+        "ok": true,
+        "update_hex": "010190030084c80105012401c801010104"
+      }
+    },
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 700
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "030190030084c80105012403c80100040107636f6e74656e74014c81c801000484c801040152016400c4c80104c80105012101c801010104"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "name": "content",
+        "cmd": "text_content"
+      },
+      "reply": {
+        "ok": true,
+        "text": "L!R$"
+      }
+    },
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 200
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "text": "\ud83c\uddfa\ud83c\uddf8AB",
+        "cmd": "insert_text",
+        "pos": 0
+      },
+      "reply": {
+        "length": 6,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "encode"
+      },
+      "reply": {
+        "ok": true,
+        "update_hex": "0101c80100040107636f6e74656e740af09f87baf09f87b8414200"
+      }
+    },
+    {
+      "command": {
+        "len": 1,
+        "cmd": "delete_text",
+        "pos": 4
+      },
+      "reply": {
+        "length": 5,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "text": "X",
+        "cmd": "insert_text",
+        "pos": 4
+      },
+      "reply": {
+        "length": 6,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "encode"
+      },
+      "reply": {
+        "ok": true,
+        "update_hex": "0104c80100040107636f6e74656e7408f09f87baf09f87b884c80103014184c801040142c4c80104c80105015801c801010401"
+      }
+    },
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 600
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "0101c80100040107636f6e74656e740af09f87baf09f87b8414200"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "0101f40300c4c80103c80105015801c801010401"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "name": "content",
+        "cmd": "text_content"
+      },
+      "reply": {
+        "ok": true,
+        "text": "\ud83c\uddfa\ud83c\uddf8XB"
+      }
+    },
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 200
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "text": "L\u00e9/e\u0301/\ud83d\ude00R",
+        "cmd": "insert_text",
+        "pos": 0
+      },
+      "reply": {
+        "length": 9,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "encode"
+      },
+      "reply": {
+        "ok": true,
+        "update_hex": "0101c80100040107636f6e74656e740d4cc3a92f65cc812ff09f98805200"
+      }
+    },
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 400
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "0101c80100040107636f6e74656e740d4cc3a92f65cc812ff09f98805200"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "name": "content",
+        "cmd": "text_content"
+      },
+      "reply": {
+        "ok": true,
+        "text": "L\u00e9/e\u0301/\ud83d\ude00R"
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "01016400c4c80107c80108012100"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "name": "content",
+        "cmd": "text_content"
+      },
+      "reply": {
+        "ok": true,
+        "text": "L\u00e9/e\u0301/\ud83d\ude00!R"
+      }
+    },
+    {
+      "command": {
+        "len": 7,
+        "cmd": "delete_text",
+        "pos": 1
+      },
+      "reply": {
+        "length": 3,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "text": "$",
+        "cmd": "insert_text",
+        "pos": 3
+      },
+      "reply": {
+        "length": 4,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "encode",
+        "sv": {
+          "100": 1,
+          "200": 9
+        }
+      },
+      "reply": {
+        "ok": true,
+        "update_hex": "010190030084c80108012401c801010107"
+      }
+    },
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 700
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "030190030084c80108012403c80100040107636f6e74656e74014c81c801000784c801070152016400c4c80107c80108012101c801010107"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "name": "content",
+        "cmd": "text_content"
+      },
+      "reply": {
+        "ok": true,
+        "text": "L!R$"
+      }
+    },
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 200
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "text": "\u00e9/e\u0301/\ud83d\ude00AB",
+        "cmd": "insert_text",
+        "pos": 0
+      },
+      "reply": {
+        "length": 9,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "encode"
+      },
+      "reply": {
+        "ok": true,
+        "update_hex": "0101c80100040107636f6e74656e740dc3a92f65cc812ff09f9880414200"
+      }
+    },
+    {
+      "command": {
+        "len": 1,
+        "cmd": "delete_text",
+        "pos": 7
+      },
+      "reply": {
+        "length": 8,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "text": "X",
+        "cmd": "insert_text",
+        "pos": 7
+      },
+      "reply": {
+        "length": 9,
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "encode"
+      },
+      "reply": {
+        "ok": true,
+        "update_hex": "0104c80100040107636f6e74656e740bc3a92f65cc812ff09f988084c80106014184c801070142c4c80107c80108015801c801010701"
+      }
+    },
+    {
+      "command": {
+        "cmd": "reset",
+        "client_id": 600
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "0101c80100040107636f6e74656e740dc3a92f65cc812ff09f9880414200"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "cmd": "apply_update",
+        "update_hex": "0101f40300c4c80106c80108015801c801010701"
+      },
+      "reply": {
+        "ok": true
+      }
+    },
+    {
+      "command": {
+        "name": "content",
+        "cmd": "text_content"
+      },
+      "reply": {
+        "ok": true,
+        "text": "\u00e9/e\u0301/\ud83d\ude00XB"
+      }
+    }
+  ],
+  "timing": [
+    "start=2026-09-06T02:34:47Z",
+    "end=2026-09-06T02:34:53Z"
+  ]
+}

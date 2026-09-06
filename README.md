@@ -5,7 +5,13 @@ extracted into its own package.
 
 ## Status
 
-**Last full `mix check` ran against the tree at `00a1102` (2026-08-27, under `bin/box-sample.sh`):
+The latest [standalone codec repin](docs/standalone-inbound.md) selects repaired
+Yelixer `59b04eb` in this package's own manifest and lock. Its 70 affected tests
+pass; the earlier [compatibility report](docs/unicode-compatibility.md) retains the
+full check measured with the previous codec. The historical result below is
+specific to its named tree.
+
+**Historical full `mix check` against the tree at `00a1102` (2026-08-27, under `bin/box-sample.sh`):
 spec r3 §6–§24 implemented, epoch-token minting shipped, 629 runner tests + 12 properties,
 0 failures, Dialyzer `Total errors: 0`; consumed by `commonplace-merkle-crdt` for compaction
 openers.**

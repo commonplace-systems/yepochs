@@ -39,3 +39,8 @@ and formatted-text positional parity are not established by this text/delete
 matrix; the existing explicit refusal tests remain in place.
 
 The complete repository gate also passed: `mix check` ran both shell self-tests, formatting, warnings-as-errors compilation, 656 tests plus 12 properties, and Dialyzer with zero errors and zero skips. The cold PLTs were built within the allocated resource window.
+# Later standalone repin
+
+The [standalone repaired-codec closure](standalone-inbound.md) now selects
+Yelixer `59b04eb` directly and records affected validation at that revision.
+Earlier results below retain their original dependency set.
